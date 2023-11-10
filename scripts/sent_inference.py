@@ -167,8 +167,8 @@ if __name__ == '__main__':
 
     # Llama Arguments
     parser.add_argument('--max_new_tokens', type=int, default=128)
-    parser.add_argument('--ckpt', default='latest')
-    parser.add_argument('--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_frost_instruct/checkpoint-600')
+    parser.add_argument('--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_frost_instruct')
+    parser.add_argument('--ckpt', default=600)
 
     args = parser.parse_args()
 
@@ -183,8 +183,9 @@ if __name__ == '__main__':
     parsed_cfg = load_cfg(config, **kwargs)
     parsed_cfg.sample_packing = False
     # TODO is this what we need to do?
-    parsed_cfg.base_model = Path(args.base_model)
-    parsed_cfg.base_model_config = parsed_cfg.base_model_config.parent
+    parsed_cfg.base_model = os.path.join(args.base_model, f'checkpoint-{args.ckpt}')
+    assert os.path.exists(parsed_cfg.base_model)
+    parsed_cfg.base_model_config = args.base_model
     parser = transformers.HfArgumentParser((TrainerCliArgs))
     parsed_cli_args, _ = parser.parse_args_into_dataclasses(
         return_remaining_strings=True
