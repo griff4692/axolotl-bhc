@@ -26,7 +26,7 @@ _DEFAULT_PRED_ENT_THRESHOLD = 0.75
 _DEFAULT_ENT_MERGE_THRESHOLD = 0.6
 BHC_PREFIX = '\n\n### PARTIAL HOSPITAL COURSE:\n'
 BHC_FULL = '\n\n### BRIEF HOSPITAL COURSE:\n'
-INSTRUCTION = 'Write the next sentence in the BRIEF HOSPITAL COURSE. Do not repeat the same sentence twice. Only include entities from the list of PROBLEMS, TREATMENTS, and TESTS below:'
+INSTRUCTION = 'Write the next sentence in the BRIEF HOSPITAL COURSE. Only include entities from the list of PROBLEMS, TREATMENTS, and TESTS below:'
 
 
 PATIENT_TERMS = {'patient', 'pt', 'patient\'s', 'patients', 'patients\''}
