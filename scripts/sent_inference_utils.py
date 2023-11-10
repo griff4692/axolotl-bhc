@@ -493,7 +493,7 @@ def filter_to_max_token_limit(source_input, clusters, max_prompt_tokens):
     chosen_toks = 0
     chosen_idxs = []
 
-    for _ in range(len(lines)):
+    for step in range(len(lines)):
         priorities = [
             len(set(idxs) - clusters_accounted_for) for idxs in line_cluster_idxs
         ]
@@ -501,13 +501,15 @@ def filter_to_max_token_limit(source_input, clusters, max_prompt_tokens):
         max_priority = max(priorities)
         if max_priority == 0:
             break
-        chosen_idxs.append(chosen_idx)
+
         chosen_toks += line_toks[chosen_idx]
+        if chosen_toks > max_prompt_tokens and step > 0:
+            break
+
+        chosen_idxs.append(chosen_idx)
         for to_add in line_cluster_idxs[chosen_idx]:
             clusters_accounted_for.add(to_add)
 
-        if chosen_toks >= max_prompt_tokens:
-            break
 
     chosen_idxs = list(sorted(chosen_idxs))
     if chosen_toks < max_prompt_tokens:
@@ -554,7 +556,7 @@ def run_prompt(cfg, model, tokenizer, prompt):
     with torch.no_grad():
         generation_config = GenerationConfig(
             repetition_penalty=1.1,
-            max_new_tokens=1024,
+            max_new_tokens=150,
             min_new_tokens=4,
             # temperature=0.9,
             # top_p=0.95,
