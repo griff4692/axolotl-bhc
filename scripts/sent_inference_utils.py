@@ -573,6 +573,7 @@ def run_prompt(cfg, model, tokenizer, prompt):
             generation_config=generation_config,
         )
     output = tokenizer.decode(generated["sequences"].cpu().tolist()[0])
+    print(output)
     assert '[\INST]:' in output
     return output.split('[\INST]:')[-1].replace('</s>', '').strip()
 
