@@ -682,7 +682,7 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
         else:
             pred_str = '\n'.join(pred_sents) + '\n\n'
 
-        prompt = f'{source_input}\n\n### BRIEF HOSPITAL COURSE:\n\n{pred_str}{guidance}\n### SENTENCE: '
+        prompt = f'{source_input}\n\n[INST] Write the next sentence in the BRIEF HOSPITAL COURSE. Only include entities from the list of PROBLEMS, TREATMENTS, and TESTS below:\n### BRIEF HOSPITAL COURSE:\n\n{pred_str}{guidance}\n### SENTENCE: [\INST]'
 
         pred_sent = run_prompt(cfg, model, tokenizer, prompt)
         sent_obj = process_prediction(args, pred_sent, tools)
