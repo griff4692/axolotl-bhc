@@ -43,6 +43,7 @@ def sent_inference(
     tools,
 ):
     print('Loading model and tokenizer...')
+    print(f'cfg.device={cfg.device}')
     model, tokenizer = load_model_and_tokenizer(cfg=cfg, cli_args=cli_args)
     default_tokens = {"unk_token": "<unk>", "bos_token": "<s>", "eos_token": "</s>"}
 

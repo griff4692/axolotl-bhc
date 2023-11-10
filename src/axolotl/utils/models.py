@@ -114,6 +114,8 @@ def load_model(
     model_type = cfg.model_type
     model_config = load_model_config(cfg)
 
+    print(f'Loading Model from {base_model} with config {base_model_config}')
+
     # TODO refactor as a kwarg
     load_in_8bit = cfg.load_in_8bit
 
