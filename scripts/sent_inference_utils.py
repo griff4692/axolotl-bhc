@@ -557,8 +557,9 @@ def run_prompt(cfg, model, tokenizer, prompt):
     with torch.no_grad():
         generation_config = GenerationConfig(
             repetition_penalty=1.1,
-            max_new_tokens=150,
+            max_new_tokens=256,
             min_new_tokens=4,
+            length_penalty=4.0,
             # temperature=0.9,
             # top_p=0.95,
             # top_k=40,
