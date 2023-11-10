@@ -22,7 +22,7 @@ from pathlib import Path
 from axolotl.common.cli import TrainerCliArgs, load_model_and_tokenizer
 from axolotl.logging_config import configure_logging
 from axolotl.utils.dict import DictDefault
-from scripts.sent_inference_utils import (
+from sent_inference_utils import (
     IN_DIR, run_example, load_ent_embeds, load_tools
 )
 
