@@ -554,13 +554,14 @@ def run_prompt(cfg, model, tokenizer, prompt):
         generation_config = GenerationConfig(
             repetition_penalty=1.1,
             max_new_tokens=1024,
-            temperature=0.9,
-            top_p=0.95,
-            top_k=40,
+            min_new_tokens=4,
+            # temperature=0.9,
+            # top_p=0.95,
+            # top_k=40,
             bos_token_id=tokenizer.bos_token_id,
             eos_token_id=tokenizer.eos_token_id,
             pad_token_id=tokenizer.pad_token_id,
-            do_sample=True,
+            # do_sample=True,
             use_cache=True,
             return_dict_in_generate=True,
             output_attentions=False,
@@ -571,7 +572,9 @@ def run_prompt(cfg, model, tokenizer, prompt):
             inputs=batch["input_ids"].to(cfg.device),
             generation_config=generation_config,
         )
-    return tokenizer.decode(generated["sequences"].cpu().tolist()[0])
+    output = tokenizer.decode(generated["sequences"].cpu().tolist()[0])
+
+    return output.split('### SENTENCE: [\INST]:')[-1].replace('</s>', '').strip()
 
 
 def load_tools(args):
