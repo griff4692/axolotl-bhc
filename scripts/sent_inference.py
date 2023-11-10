@@ -170,9 +170,9 @@ if __name__ == '__main__':
     parser.add_argument('--pred_ent_threshold', default=0.81, type=float)
 
     # Llama Arguments
-    parser.add_argument('--max_new_tokens', type=int, default=128)
+    parser.add_argument('--max_new_tokens', type=int, default=150)
     parser.add_argument('--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_frost_instruct')
-    parser.add_argument('--ckpt', default=600)
+    parser.add_argument('--ckpt', default=900)
 
     args = parser.parse_args()
 
