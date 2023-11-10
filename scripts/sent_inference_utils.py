@@ -559,6 +559,7 @@ def run_prompt(cfg, model, tokenizer, prompt):
             repetition_penalty=1.1,
             max_new_tokens=256,
             min_new_tokens=4,
+            num_beams=2,
             length_penalty=4.0,
             # temperature=0.9,
             # top_p=0.95,
