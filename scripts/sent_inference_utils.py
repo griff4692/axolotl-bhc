@@ -522,13 +522,13 @@ def filter_to_max_token_limit(source_input, clusters, max_prompt_tokens):
             max_priority = max(priorities)
             if max_priority == 0:
                 break
-            chosen_idxs.append(chosen_idx)
             chosen_toks += line_toks[chosen_idx]
-            for to_add in line_cluster_idxs[chosen_idx]:
-                clusters_accounted_for.add(to_add)
-
             if chosen_toks >= max_prompt_tokens:
                 break
+
+            chosen_idxs.append(chosen_idx)
+            for to_add in line_cluster_idxs[chosen_idx]:
+                clusters_accounted_for.add(to_add)
 
     chosen_idxs = list(sorted(chosen_idxs))
     assert len(chosen_idxs) == len(set(chosen_idxs))
