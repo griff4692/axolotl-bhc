@@ -522,8 +522,9 @@ def filter_to_max_token_limit(source_input, clusters, max_prompt_tokens):
             max_priority = max(priorities)
             if max_priority == 0:
                 break
+
             chosen_toks += line_toks[chosen_idx]
-            if chosen_toks >= max_prompt_tokens:
+            if chosen_toks > max_prompt_tokens:
                 break
 
             chosen_idxs.append(chosen_idx)
