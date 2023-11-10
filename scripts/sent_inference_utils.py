@@ -550,7 +550,7 @@ def run_prompt(cfg, model, tokenizer, prompt):
     batch = tokenizer(prompt, return_tensors="pt", add_special_tokens=True)
 
     model.eval()
-    with torch.no_grad():
+    with torch.no_grad(), torch.cpu.amp.autocast():
         generation_config = GenerationConfig(
             repetition_penalty=1.1,
             max_new_tokens=1024,
