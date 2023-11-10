@@ -183,7 +183,7 @@ if __name__ == '__main__':
     parsed_cfg = load_cfg(config, **kwargs)
     parsed_cfg.sample_packing = False
     # TODO is this what we need to do?
-    parsed_cfg.base_model = args.base_model
+    parsed_cfg.base_model = base_model_config = args.base_model
     parser = transformers.HfArgumentParser((TrainerCliArgs))
     parsed_cli_args, _ = parser.parse_args_into_dataclasses(
         return_remaining_strings=True
