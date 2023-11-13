@@ -15,7 +15,6 @@ import json
 import torch
 from evaluate import load
 import stanza
-from section_utils import load_section_filter
 from nltk.corpus import stopwords
 import string
 
@@ -32,7 +31,7 @@ PATIENT_TERMS = {'patient', 'pt', 'patient\'s', 'patients', 'patients\''}
 BHC_STOPWORDS = set(stopwords.words('english')).union(string.punctuation).union(PATIENT_TERMS)
 
 
-from section_utils import get_attr, filter_by_section
+from section_utils import get_attr, load_section_filter, filter_by_section
 
 
 def extract_generated_ents(pred_sents, tools, ent_merge_threshold=_DEFAULT_ENT_MERGE_THRESHOLD):
@@ -575,14 +574,14 @@ def load_tools(args):
     sapbert_model = AutoModel.from_pretrained(SAP_BERT).eval().to(args.device)
     nlp = stanza.Pipeline('en', package='mimic', processors={'ner': 'i2b2'}, use_gpu=True)
     rouge = load('rouge', keep_in_memory=True)
-    section_filter = load_section_filter(args)
+    # section_filter = load_section_filter(args)
 
     tools = {
         'rouge': rouge,
         'nlp': nlp,
         'sapbert_model': sapbert_model,
         'sapbert_tokenizer': sapbert_tokenizer,
-        'section_filter': section_filter,
+        # 'section_filter': section_filter,
     }
 
     return tools
@@ -613,11 +612,11 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
         ent_probs, ent_info, pred_ent_threshold=args.pred_ent_threshold
     )
 
-    source = filter_by_section(
-        example['source'], filter_model=tools['section_filter'], target_tokens=args.max_prompt_tokens
-    )
+    # source = filter_by_section(
+    #     example['source'], filter_model=tools['section_filter'], target_tokens=args.max_prompt_tokens
+    # )
 
-    notes = split_into_notes(source)
+    notes = split_into_notes(example['source'])
 
     cluster_is_covered = {
         json.dumps(c): False for c in pred_source_clusters
@@ -652,10 +651,9 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
 
         source_input = generate_input(notes, admit_date=admit_date, discharge_date=discharge_date)
 
-        # TODO put back
-        # source_input, unaccounted_for_clusters = filter_to_max_token_limit(
-        #     source_input, uncovered_clusters, args.max_prompt_tokens
-        # )
+        source_input, unaccounted_for_clusters = filter_to_max_token_limit(
+            source_input, uncovered_clusters, args.max_prompt_tokens
+        )
         unaccounted_for_clusters = []
         unaccounted_for_clusters_json = list(map(ujson.dumps, unaccounted_for_clusters))
         source_input = re.sub(r'\n{2,}', '\n\n', source_input).strip()

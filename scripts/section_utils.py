@@ -187,6 +187,30 @@ def split_into_sections(html_str):
     return sections
 
 
+def filter_sections_from_idx(source, whitelist):
+    in_section = False
+    skip_section = False
+    tps = source.split('<SEP>')
+    filtered = []
+    curr_sec_idx = 0
+    for tp_idx, tp in enumerate(tps):
+        if tp.startswith('<h'):
+            in_section = True
+            skip_section = curr_sec_idx not in whitelist
+            if not skip_section:
+                filtered.append(tp)
+        elif tp == '</h>':
+            if not skip_section:
+                filtered.append(tp)
+            in_section = False
+            curr_sec_idx += 1
+        elif in_section and skip_section:
+            continue
+        else:
+            filtered.append(tp)
+    return '<SEP>'.join(filtered)
+
+
 def filter_by_section(source_html, filter_model, target_tokens=10000):
     sections = split_into_sections(source_html.replace('<e>', '').replace('</e>', ''))
     header_lens = [len(word_tokenize(x['concept'])) for x in sections]
