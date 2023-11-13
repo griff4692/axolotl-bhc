@@ -16,6 +16,7 @@ import logging
 import numpy as np
 np.random.seed(1992)
 import ujson
+import torch
 import pandas as pd
 from pathlib import Path
 
@@ -38,6 +39,7 @@ os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
 def sent_inference(
     *,
+    args,
     cfg: DictDefault,
     cli_args: TrainerCliArgs,
     tools,
@@ -47,7 +49,6 @@ def sent_inference(
     model, tokenizer = load_model_and_tokenizer(cfg=cfg, cli_args=cli_args)
     default_tokens = {"unk_token": "<unk>", "bos_token": "<s>", "eos_token": "</s>"}
 
-    import torch
     model = model.to(torch.bfloat16)
 
     for token, symbol in default_tokens.items():
@@ -76,19 +77,30 @@ def sent_inference(
     print('Reading in dataset...')
     visit_meta = {}
     if args.dataset == 'cumc':
-        data_dir = f'/nlp/projects/summarization/bhc_data_cleanup/cumc_test'
+        if args.filtered:
+            data_dir = f'/nlp/projects/summarization/bhc_data_cleanup/mistral_inference/{args.dataset}_8192'
+        else:
+            data_dir = f'/nlp/projects/summarization/bhc_data_cleanup/cumc_test'
         print(f'Reading in data from {data_dir}')
         data = load_from_disk(data_dir)
     elif args.dataset == 'epic':
-        data_dir = '/nlp/projects/summarization/bhc_data_cleanup/summarization_deduped_dataset'
+        if args.filtered:
+            data_dir = f'/nlp/projects/summarization/bhc_data_cleanup/mistral_inference/{args.dataset}_8192'
+        else:
+            data_dir = '/nlp/projects/summarization/bhc_data_cleanup/summarization_deduped_dataset'
         visit_meta = pd.read_csv('/nlp/projects/summarization/bhc_data_cleanup/bhc_test_meta.csv')
         visit_meta = {
             row['visit_id']: row for row in visit_meta.to_dict('records')
         }
         print(f'Reading in data from {data_dir}')
-        data = load_from_disk(data_dir)[args.split]
+        data = load_from_disk(data_dir)
+        if args.split in data:
+            data = data[args.split]
     else:
-        data_dir = '/nlp/projects/summarization/bhc_data_cleanup/mimic_test_filt'
+        if args.filtered:
+            data_dir = f'/nlp/projects/summarization/bhc_data_cleanup/mistral_inference/{args.dataset}_8192'
+        else:
+            data_dir = '/nlp/projects/summarization/bhc_data_cleanup/mimic_test_filt'
         print(f'Reading in data from {data_dir}')
         data = load_from_disk(data_dir)
 
@@ -152,6 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', default=0, type=int)
     parser.add_argument('-debug', default=False, action='store_true')
     parser.add_argument('-overwrite', default=False, action='store_true')
+    parser.add_argument('-filtered', default=False, action='store_true')
 
     parser.add_argument('--max_examples', default=1000, type=int)
     parser.add_argument('--max_gen_sents', default=50, type=int)
@@ -195,4 +208,4 @@ if __name__ == '__main__':
     parsed_cli_args.inference = True
 
     print(f'Starting Sentence-Level Inference...')
-    sent_inference(cfg=parsed_cfg, cli_args=parsed_cli_args, tools=tools)
+    sent_inference(args=args, cfg=parsed_cfg, cli_args=parsed_cli_args, tools=tools)
