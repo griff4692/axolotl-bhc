@@ -224,7 +224,7 @@ if __name__ == '__main__':
 
     # Llama Arguments
     parser.add_argument('--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct')
-    parser.add_argument('--ckpt', default=2500)
+    parser.add_argument('--ckpt', default=2800)
 
     args = parser.parse_args()
 
