@@ -71,6 +71,18 @@ def run_prompt(cfg, model, tokenizer, prompt):
     return output.split(sep)[-1].replace('</s>', '').strip()
 
 
+def split_into_notes(html_str):
+    tps = html_str.split('<SEP>')
+    notes = []
+    curr_note = []
+    for tp in tps:
+        curr_note.append(tp)
+        if tp == '</d>':
+            notes.append('<SEP>'.join(curr_note))
+            curr_note = []
+    return notes
+
+
 def remove_duplicates_preserve_order(arr):
     """
     Removes duplicates from a list while preserving order.
@@ -98,8 +110,8 @@ def run_example(args, cfg, example, out_dir, model, tokenizer, visit_meta):
             return out_row
 
     target_no_dup = '\n'.join(remove_duplicates_preserve_order(example['target_sents']))
+    notes = split_into_notes(example['source_filt'])
 
-    notes = []
     admit_date = discharge_date = None
     if 'first_date' in example:
         admit_date = datetime.strptime(example['first_date'].split('_')[0], "%m-%d-%y").date()
