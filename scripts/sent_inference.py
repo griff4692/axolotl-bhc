@@ -186,7 +186,6 @@ if __name__ == '__main__':
     print_axolotl_text_art()
     parsed_cfg = load_cfg(config, **kwargs)
     parsed_cfg.sample_packing = False
-    # TODO is this what we need to do?
     parsed_cfg.base_model = os.path.join(args.base_model, f'checkpoint-{args.ckpt}')
     assert os.path.exists(parsed_cfg.base_model)
     parsed_cfg.base_model_config = args.base_model

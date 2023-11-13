@@ -17,6 +17,7 @@ einops
 xformers>=0.0.22
 optimum==1.13.2
 hf_transfer
+pytorch-lightning
 colorama
 numba
 numpy>=1.24.4
