@@ -15,6 +15,7 @@ import json
 import torch
 from evaluate import load
 import stanza
+from section_utils import load_section_filter
 from nltk.corpus import stopwords
 import string
 
@@ -27,10 +28,11 @@ _DEFAULT_ENT_MERGE_THRESHOLD = 0.6
 BHC_PREFIX = '\n\n### PARTIAL HOSPITAL COURSE:\n'
 BHC_FULL = '\n\n### BRIEF HOSPITAL COURSE:\n'
 INSTRUCTION = 'Write the next sentence in the BRIEF HOSPITAL COURSE. Only include entities from the list of PROBLEMS, TREATMENTS, and TESTS below:'
-
-
 PATIENT_TERMS = {'patient', 'pt', 'patient\'s', 'patients', 'patients\''}
 BHC_STOPWORDS = set(stopwords.words('english')).union(string.punctuation).union(PATIENT_TERMS)
+
+
+from section_utils import get_attr, filter_by_section
 
 
 def extract_generated_ents(pred_sents, tools, ent_merge_threshold=_DEFAULT_ENT_MERGE_THRESHOLD):
@@ -73,16 +75,6 @@ def extract_generated_ents(pred_sents, tools, ent_merge_threshold=_DEFAULT_ENT_M
         'cluster_spans': pred_ent_clusters,
         'cluster_types': pred_ent_cluster_types,
     }
-
-
-def gen_single_sentence(pipe, prompt):
-    n = len(prompt)
-    response = pipe(
-        prompt, num_return_sequences=1, max_new_tokens=args.max_new_tokens,
-    )[0]["generated_text"][n:]
-
-    # TODO change to end on newline
-    return response.strip().split('\n')[0]
 
 
 def process_prediction(args, text, tools):
@@ -232,10 +224,6 @@ def remove_duplicates_preserve_order(arr):
             seen.add(item)
             result.append(item)
     return result
-
-
-def get_attr(tag, attr):
-    return re.search(r'\s' + attr + r'=([^ ]+)', tag).group(1).strip('<>: ')
 
 
 def embed_concept_spans(model, tokenizer, syns, batch_size=4096, verbose=False):
@@ -587,12 +575,14 @@ def load_tools(args):
     sapbert_model = AutoModel.from_pretrained(SAP_BERT).eval().to(args.device)
     nlp = stanza.Pipeline('en', package='mimic', processors={'ner': 'i2b2'}, use_gpu=True)
     rouge = load('rouge', keep_in_memory=True)
+    section_filter = load_section_filter(args)
 
     tools = {
         'rouge': rouge,
         'nlp': nlp,
         'sapbert_model': sapbert_model,
         'sapbert_tokenizer': sapbert_tokenizer,
+        'section_filter': section_filter,
     }
 
     return tools

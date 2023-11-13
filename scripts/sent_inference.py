@@ -47,7 +47,6 @@ def sent_inference(
     model, tokenizer = load_model_and_tokenizer(cfg=cfg, cli_args=cli_args)
     default_tokens = {"unk_token": "<unk>", "bos_token": "<s>", "eos_token": "</s>"}
 
-    # TODO do we need this?
     import torch
     model = model.to(torch.bfloat16)
 
