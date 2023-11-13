@@ -613,7 +613,11 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
         ent_probs, ent_info, pred_ent_threshold=args.pred_ent_threshold
     )
 
-    notes = split_into_notes(example['source'])
+    source = filter_by_section(
+        example['source'], filter_model=tools['section_filter'], target_tokens=args.max_prompt_tokens
+    )
+
+    notes = split_into_notes(source)
 
     cluster_is_covered = {
         json.dumps(c): False for c in pred_source_clusters
@@ -648,9 +652,11 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
 
         source_input = generate_input(notes, admit_date=admit_date, discharge_date=discharge_date)
 
-        source_input, unaccounted_for_clusters = filter_to_max_token_limit(
-            source_input, uncovered_clusters, args.max_prompt_tokens
-        )
+        # TODO put back
+        # source_input, unaccounted_for_clusters = filter_to_max_token_limit(
+        #     source_input, uncovered_clusters, args.max_prompt_tokens
+        # )
+        unaccounted_for_clusters = []
         unaccounted_for_clusters_json = list(map(ujson.dumps, unaccounted_for_clusters))
         source_input = re.sub(r'\n{2,}', '\n\n', source_input).strip()
 
