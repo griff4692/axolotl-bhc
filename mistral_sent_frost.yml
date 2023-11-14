@@ -54,7 +54,7 @@ eval_table_max_new_tokens: 128
 save_steps: 100
 save_strategy: steps
 debug:
-deepspeed: /home/ga2530/axolotl/deepspeed/zero3.json
+deepspeed: /home/ga2530/axolotl-bhc/deepspeed/zero3.json
 weight_decay: 0.0
 fsdp:
 fsdp_config:
