@@ -1,4 +1,4 @@
-base_model: mistralai/Mistral-7B-Instruct-v0.1
+base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct/ckpt-3600
 model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
 is_mistral_derived_model: true
