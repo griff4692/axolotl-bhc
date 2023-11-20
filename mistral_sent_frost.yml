@@ -1,5 +1,5 @@
 base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct
-base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct/checkpoint-3700
+base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct
 model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
 is_mistral_derived_model: true
@@ -23,7 +23,7 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: sent_frost_instruct
+wandb_run_id: faithful_sent_frost
 wandb_log_model:
 
 gradient_accumulation_steps: 8
