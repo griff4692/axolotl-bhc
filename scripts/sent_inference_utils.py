@@ -26,7 +26,8 @@ _DEFAULT_PRED_ENT_THRESHOLD = 0.75
 _DEFAULT_ENT_MERGE_THRESHOLD = 0.6
 BHC_PREFIX = '\n\n### PARTIAL HOSPITAL COURSE:\n'
 BHC_FULL = '\n\n### BRIEF HOSPITAL COURSE:\n'
-INSTRUCTION = 'Write the next sentence in the BRIEF HOSPITAL COURSE. Only include entities from the list of PROBLEMS, TREATMENTS, and TESTS below:'
+# INSTRUCTION = 'Generate the next sentence of the BRIEF HOSPITAL COURSE summary using only the medical entities (PROBLEMS, TREATMENTS, and TESTS) listed below.'
+INSTRUCTION = 'Play close attention to entities in double brackets {{ }} when generating the next sentence of the BRIEF HOSPITAL COURSE summary.'
 PATIENT_TERMS = {'patient', 'pt', 'patient\'s', 'patients', 'patients\''}
 BHC_STOPWORDS = set(stopwords.words('english')).union(string.punctuation).union(PATIENT_TERMS)
 
@@ -104,6 +105,38 @@ def remove_dup_lines(text):
         if x not in new_arr and len(x) > 0:
             new_arr.append(x)
     return '\n'.join(new_arr)
+
+
+def decorate_set_of_ents(source, rel_spans, add_space=False):
+    decorated_source = source
+
+    rel_spans_lower = list(set([x.strip(string.punctuation).lower() for x in list(rel_spans)]))
+    rel_spans_lower = list(sorted(rel_spans_lower, key=lambda x: -len(x)))
+
+    for span in list(rel_spans_lower):
+        decorated_source = precise_decorate(span, decorated_source, add_space=add_space)
+    return decorated_source
+
+
+def precise_decorate(span, text, add_space=False):
+    space = ' ' if add_space else ''
+    escaped = re.escape(span)
+    tps = re.split(rf'(\W{escaped}\W)', text, flags=re.IGNORECASE)
+    updated = ''
+    for tp in tps:
+        match = re.search(rf'\W({escaped})\W', tp, flags=re.IGNORECASE)
+        if match is None:
+            updated += tp
+        else:
+            start, end = match.start(1), match.end(1)
+            updated += tp[:start] + f'<e>{space}' + tp[start:end] + f'{space}</e>' + tp[end:]
+
+    if updated.startswith(span):
+        return (f'<e>{space}' + span + f'{space}</e> ' + updated.lstrip(span)).strip()
+    if updated.endswith(span):
+        return updated.rstrip(span) + f'{space}<e>{space}' + span + f'{space}</e>'
+
+    return updated
 
 
 # https://www.geeksforgeeks.org/connected-components-in-an-undirected-graph/
@@ -538,7 +571,7 @@ def filter_to_max_token_limit(source_input, clusters, max_prompt_tokens):
 
 
 def run_prompt(cfg, model, tokenizer, prompt):
-    batch = tokenizer(prompt, return_tensors="pt", add_special_tokens=True)
+    batch = tokenizer(prompt, return_tensors='pt', add_special_tokens=True)
 
     model.eval()
     with torch.no_grad():
@@ -563,9 +596,10 @@ def run_prompt(cfg, model, tokenizer, prompt):
             inputs=batch["input_ids"].to(cfg.device),
             generation_config=generation_config,
         )
-    output = tokenizer.decode(generated["sequences"].cpu().tolist()[0])
-    assert '[\INST]' in output
-    return output.split('[\INST]')[-1].replace('</s>', '').strip()
+    output = tokenizer.decode(generated["sequences"].cpu().tolist()[0]).strip()
+    DELIM = '[\INST]'
+    assert DELIM in output
+    return output.split(DELIM)[-1].replace('</s>', '').strip()
 
 
 def load_tools(args):
@@ -681,12 +715,22 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
         guidance = f'### PROBLEMS: {uncovered_problem_str} ### TREATMENTS: ' \
                    f'{uncovered_treatment_str} ### TESTS: {uncovered_test_str}'
 
-        if len(pred_sents) == 0:
-            pred_str = ''
-        else:
-            pred_str = '\n'.join(pred_sents) + '\n\n'
+        BHC_HEADER = '### BRIEF HOSPITAL COURSE:'
 
-        prompt = f'{source_input}\n\n[INST] {INSTRUCTION}\n### BRIEF HOSPITAL COURSE:\n\n{pred_str}{guidance}\n### SENTENCE: [\INST]'
+        if len(pred_sents) == 0:
+            suffix = f'{BHC_HEADER}\n### FIRST SENTENCE: '
+        else:
+            suffix = BHC_HEADER + '\n' + '\n'.join(pred_sents) + '\n' + '### NEXT SENTENCE: '
+
+        source_transform = decorate_set_of_ents(source_input, uncovered_source_set, add_space=True)
+        # Use only 1 word-piece token
+        source_transform = re.sub(r'\s?<e>', ' {{', source_transform)
+        source_transform = re.sub(r'</e>\s?', '}} ', source_transform)
+        source_transform = re.sub(r'\n{2,}', '\n\n', source_transform).strip()
+        source_transform = re.sub(r'({{ ){2,}', '{{ ', source_transform)
+        source_transform = re.sub(r'(}} ){2,}', '}} ', source_transform)
+
+        prompt = f'[INST]\n{INSTRUCTION}\n{source_transform}\n{suffix}\n[\INST]\n'
 
         pred_sent = run_prompt(cfg, model, tokenizer, prompt)
         sent_obj = process_prediction(args, pred_sent, tools)

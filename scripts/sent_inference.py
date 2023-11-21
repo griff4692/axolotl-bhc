@@ -159,7 +159,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', default='/nlp/projects/summarization/bhc_data_cleanup')
 
     parser.add_argument('--dataset', default='epic')
-    parser.add_argument('--config', default='sent_frost')
+    parser.add_argument('--config', default='sent_focus')
 
     parser.add_argument('--device', default=0, type=int)
     parser.add_argument('-debug', default=False, action='store_true')
@@ -176,15 +176,18 @@ if __name__ == '__main__':
         help='Number of times we can generate a sentence that does not cover any new entities before breaking.'
     )
 
-    # Clique Parameter
     parser.add_argument('--split', default='test')
     parser.add_argument('-human', default=False, action='store_true')
+
+    # Entity Parameters
     parser.add_argument('--pred_ent_threshold', default=0.81, type=float)
 
-    # Llama Arguments
-    parser.add_argument('--max_new_tokens', type=int, default=150)
-    parser.add_argument('--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/faithful_sent_frost')
-    parser.add_argument('--ckpt', default=100)
+    # Mistral Arguments
+    parser.add_argument('--max_new_tokens', type=int, default=300)
+    parser.add_argument(
+        '--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus'
+    )
+    parser.add_argument('--ckpt', default=50)
 
     args = parser.parse_args()
 
