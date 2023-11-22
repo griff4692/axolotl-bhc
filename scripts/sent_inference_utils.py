@@ -596,10 +596,16 @@ def run_prompt(cfg, model, tokenizer, prompt):
             inputs=batch["input_ids"].to(cfg.device),
             generation_config=generation_config,
         )
+
     output = tokenizer.decode(generated["sequences"].cpu().tolist()[0]).strip()
     DELIM = '[\INST]'
     assert DELIM in output
-    return output.split(DELIM)[-1].replace('</s>', '').strip()
+    generated = output.split(DELIM)[-1].replace('</s>', '').strip()
+    SECOND_DELIM = '### FULL SENTENCE:'
+    if SECOND_DELIM in generated:
+        print(generated)
+        return generated.split(SECOND_DELIM)[-1].replace('</s>', '').strip()
+    return generated
 
 
 def load_tools(args):
@@ -717,10 +723,15 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
 
         BHC_HEADER = '### BRIEF HOSPITAL COURSE:'
 
+        # if len(pred_sents) == 0:
+        #     suffix = f'{BHC_HEADER}\n### FIRST SENTENCE: '
+        # else:
+        #     suffix = BHC_HEADER + '\n' + '\n'.join(pred_sents) + '\n' + '### NEXT SENTENCE: '
+
         if len(pred_sents) == 0:
-            suffix = f'{BHC_HEADER}\n### FIRST SENTENCE: '
+            suffix = f'{BHC_HEADER}'
         else:
-            suffix = BHC_HEADER + '\n' + '\n'.join(pred_sents) + '\n' + '### NEXT SENTENCE: '
+            suffix = BHC_HEADER + '\n' + '\n'.join(pred_sents)
 
         source_transform = decorate_set_of_ents(source_input, uncovered_source_set, add_space=True)
         # Use only 1 word-piece token
