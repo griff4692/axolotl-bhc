@@ -1,4 +1,5 @@
-base_model: mistralai/Mistral-7B-Instruct-v0.1
+base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct
+base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct
 model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
 is_mistral_derived_model: true
@@ -22,7 +23,7 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: focus_instruct_from_scratch
+wandb_run_id: focus_instruct
 wandb_log_model:
 
 gradient_accumulation_steps: 8
