@@ -18,7 +18,7 @@ output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/debug
 
 sequence_len: 8192
 sample_packing: false
-pad_to_sequence_len: true
+pad_to_sequence_len: false
 
 gradient_accumulation_steps: 8
 micro_batch_size: 1
