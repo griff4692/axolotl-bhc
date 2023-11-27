@@ -23,7 +23,7 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: frost_instruct_dendrite
+wandb_run_id: frost_instruct_shuffled
 wandb_log_model:
 
 gradient_accumulation_steps: 4
@@ -48,10 +48,10 @@ xformers_attention:
 flash_attention: true
 
 warmup_steps: 10
-eval_steps: 100
+eval_steps: 250
 eval_table_size:
 eval_table_max_new_tokens: 128
-save_steps: 100
+save_steps: 250
 save_strategy: steps
 debug:
 deepspeed: /home/ga2530/axolotl-bhc/deepspeed/zero3.json

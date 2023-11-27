@@ -26,7 +26,9 @@ from pathlib import Path
 from axolotl.common.cli import TrainerCliArgs, load_model_and_tokenizer
 from axolotl.logging_config import configure_logging
 from axolotl.utils.dict import DictDefault
-from sent_inference_utils import generate_input
+from sent_inference_utils import (
+    generate_input, load_ent_info, IN_DIR, get_entity_guidance, load_ent_embeds
+)
 from utils import INSTRUCTIONS
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -39,7 +41,7 @@ os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
 
 def run_prompt(cfg, model, tokenizer, prompt):
-    batch = tokenizer(prompt, return_tensors='pt', add_special_tokens=True)
+    batch = tokenizer(prompt, return_tensors="pt", add_special_tokens=True)
 
     model.eval()
     with torch.no_grad():
@@ -47,7 +49,7 @@ def run_prompt(cfg, model, tokenizer, prompt):
             repetition_penalty=1.1,
             max_new_tokens=1024,
             min_new_tokens=4,
-            # temperature=0.9,
+            # temperatu're=0.9,
             # top_p=0.95,
             # top_k=40,
             bos_token_id=tokenizer.bos_token_id,
@@ -99,7 +101,7 @@ def remove_duplicates_preserve_order(arr):
     return result
 
 
-def run_example(args, cfg, example, out_dir, model, tokenizer, visit_meta):
+def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, tokenizer, visit_meta):
     example_id = example['example_id']
     save_fn = os.path.join(out_dir, f'{example_id}.json')
 
@@ -118,10 +120,25 @@ def run_example(args, cfg, example, out_dir, model, tokenizer, visit_meta):
         discharge_date = datetime.strptime(example['last_date'].split('_')[0], "%m-%d-%y").date()
 
     source_input = generate_input(notes, admit_date=admit_date, discharge_date=discharge_date)
+    instruction = INSTRUCTIONS['frost']
 
-    instruction = INSTRUCTIONS['baseline']
-    prompt = f'[INST]\n{instruction}\n\n{source_input}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
+    # Entity Stuff
+    ent_info = load_ent_info(args, example_id, span2embed)
+    guidance, ents_in_guidance, pred_source_clusters = get_entity_guidance(
+        example_id, all_ent_probs, ent_info['source_ent_clusters'], ent_info['source_ent_types'],
+        pred_ent_threshold=args.pred_ent_threshold
+    )
+
+    problems = '; '.join([x[0] for x in ents_in_guidance['problems']])
+    treatments = '; '.join([x[0] for x in ents_in_guidance['treatments']])
+    tests = '; '.join([x[0] for x in ents_in_guidance['tests']])
+
+    guidance = f'### ENTITIES\nPROBLEMS: {problems}\nTREATMENTS: {treatments}\nTESTS: {tests}'
+
+    prompt = f'[INST]\n{instruction}\n\n{guidance}\n\n{source_input}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
+
     prediction = run_prompt(cfg, model, tokenizer, prompt)
+    prediction = '\n'.join(remove_duplicates_preserve_order(prediction.split('\n')))
 
     print('\n\n')
     print(prediction)
@@ -143,7 +160,7 @@ def run_example(args, cfg, example, out_dir, model, tokenizer, visit_meta):
     return out_row
 
 
-def baseline_inference(
+def frost_inference(
     *,
     cfg: DictDefault,
     cli_args: TrainerCliArgs,
@@ -203,10 +220,33 @@ def baseline_inference(
         data = data.select(idxs)
 
     model = model.to(cfg.device)
+
+    if args.dataset == 'epic':
+        if args.human:
+            ent_fn = os.path.join(IN_DIR, 'bhc_weights', 'fixed', 'test_human.json')
+        else:
+            ent_fn = os.path.join(IN_DIR, 'bhc_weights', 'fixed', 'test_test.json')
+    elif args.dataset == 'cumc':
+        ent_fn = os.path.join(IN_DIR, 'bhc_weights', 'fixed', 'test_cumc_test.json')
+    else:
+        assert args.dataset == 'mimic'
+        ent_fn = os.path.join(IN_DIR, 'bhc_weights', 'fixed', 'test_mimic_test.json')
+
+    with open(ent_fn, 'r') as fd:
+        all_ent_probs = ujson.load(fd)
+
+    example_ids = set([x['example_id'] for x in all_ent_probs])
+    prev = len(data)
+    data = data.filter(lambda row: row['example_id'] in example_ids)
+    new = len(data)
+    print(f'Entity Probabilities for {new} / {prev} examples. Filtering...')
+
+    span2embed = load_ent_embeds()
+
     outputs = []
     for example in tqdm(data):
         out_row = run_example(
-            args, cfg, example, out_dir, model, tokenizer, visit_meta
+            args, cfg, example, out_dir, all_ent_probs, span2embed, model, tokenizer, visit_meta
         )
         outputs.append(out_row)
 
@@ -222,7 +262,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', default='/nlp/projects/summarization/bhc_data_cleanup')
 
     parser.add_argument('--dataset', default='epic')
-    parser.add_argument('--config', default='baseline')
+    parser.add_argument('--config', default='frost')
 
     parser.add_argument('--device', default=0, type=int)
     parser.add_argument('-debug', default=False, action='store_true')
@@ -234,9 +274,14 @@ if __name__ == '__main__':
 
     parser.add_argument('-human', default=False, action='store_true')
 
-    # Llama Arguments
-    parser.add_argument('--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct')
-    # parser.add_argument('--ckpt', default=3700)
+    # Entity Parameters
+    parser.add_argument('--pred_ent_threshold', default=0.81, type=float)
+
+    # Mistral Arguments
+    parser.add_argument(
+        '--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_instruct'
+    )
+    parser.add_argument('--ckpt', default=4000)
 
     args = parser.parse_args()
 
@@ -248,7 +293,7 @@ if __name__ == '__main__':
     print_axolotl_text_art()
     parsed_cfg = load_cfg(config, **kwargs)
     parsed_cfg.sample_packing = False
-    parsed_cfg.base_model = os.path.join(args.base_model)  # , f'checkpoint-{args.ckpt}')
+    parsed_cfg.base_model = os.path.join(args.base_model, f'checkpoint-{args.ckpt}')
     assert os.path.exists(parsed_cfg.base_model)
     parsed_cfg.base_model_config = args.base_model
     parser = transformers.HfArgumentParser((TrainerCliArgs))
@@ -257,5 +302,5 @@ if __name__ == '__main__':
     )
     parsed_cli_args.inference = True
 
-    print(f'Starting Baseline Inference...')
-    baseline_inference(cfg=parsed_cfg, cli_args=parsed_cli_args)
+    print(f'Starting FROST Inference...')
+    frost_inference(cfg=parsed_cfg, cli_args=parsed_cli_args)

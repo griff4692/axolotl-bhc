@@ -32,7 +32,7 @@ PATIENT_TERMS = {'patient', 'pt', 'patient\'s', 'patients', 'patients\''}
 BHC_STOPWORDS = set(stopwords.words('english')).union(string.punctuation).union(PATIENT_TERMS)
 
 
-from section_utils import get_attr, load_section_filter, filter_by_section
+from section_utils import get_attr
 
 
 def extract_generated_ents(pred_sents, tools, ent_merge_threshold=_DEFAULT_ENT_MERGE_THRESHOLD):
