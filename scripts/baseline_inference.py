@@ -41,7 +41,6 @@ os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 def run_prompt(cfg, model, tokenizer, prompt):
     batch = tokenizer(prompt, return_tensors='pt', add_special_tokens=True)
 
-    model.eval()
     with torch.no_grad():
         generation_config = GenerationConfig(
             repetition_penalty=1.1,
@@ -64,8 +63,6 @@ def run_prompt(cfg, model, tokenizer, prompt):
             inputs=batch['input_ids'].to(cfg.device),
             generation_config=generation_config,
         )
-
-    torch.cuda.empty_cache()
 
     output = tokenizer.decode(generated['sequences'].cpu().tolist()[0])
     sep = '### BRIEF HOSPITAL COURSE:'
@@ -154,7 +151,7 @@ def baseline_inference(
     print(f'cfg.device={cfg.device}')
     model, tokenizer = load_model_and_tokenizer(cfg=cfg, cli_args=cli_args)
     default_tokens = {"unk_token": "<unk>", "bos_token": "<s>", "eos_token": "</s>"}
-    model = model.to(torch.bfloat16)
+    model = model.to(torch.bfloat16).eval()
 
     for token, symbol in default_tokens.items():
         # If the token isn't already specified in the config, add it

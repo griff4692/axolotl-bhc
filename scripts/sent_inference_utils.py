@@ -5,6 +5,7 @@ import ujson
 import pickle
 from sklearn.metrics.pairwise import cosine_similarity
 import regex as re
+import itertools
 
 from nltk import word_tokenize
 from transformers import AutoModel, AutoTokenizer
@@ -26,13 +27,12 @@ _DEFAULT_PRED_ENT_THRESHOLD = 0.75
 _DEFAULT_ENT_MERGE_THRESHOLD = 0.6
 BHC_PREFIX = '\n\n### PARTIAL HOSPITAL COURSE:\n'
 BHC_FULL = '\n\n### BRIEF HOSPITAL COURSE:\n'
-# INSTRUCTION = 'Generate the next sentence of the BRIEF HOSPITAL COURSE summary using only the medical entities (PROBLEMS, TREATMENTS, and TESTS) listed below.'
-INSTRUCTION = 'Play close attention to entities in double brackets {{ }} when generating the next sentence of the BRIEF HOSPITAL COURSE summary.'
 PATIENT_TERMS = {'patient', 'pt', 'patient\'s', 'patients', 'patients\''}
 BHC_STOPWORDS = set(stopwords.words('english')).union(string.punctuation).union(PATIENT_TERMS)
 
 
 from section_utils import get_attr
+from utils import INSTRUCTIONS
 
 
 def extract_generated_ents(pred_sents, tools, ent_merge_threshold=_DEFAULT_ENT_MERGE_THRESHOLD):
@@ -278,7 +278,8 @@ def embed_concept_spans(model, tokenizer, syns, batch_size=4096, verbose=False):
 
 
 def transform_text_for_llama(
-        html_str, include_header=True, include_title=True, include_sent_markers=False, meta=None
+    html_str, include_header=True, include_title=True, include_sent_markers=False, meta=None,
+    sent_new_line=False
 ):
     tps = html_str.split('<SEP>')
     curr_str = ''
@@ -310,7 +311,10 @@ def transform_text_for_llama(
         elif idx > 0 and tps[idx - 1].startswith('<s'):
             # sent_str = remove_tags_from_sent(tp)
             if len(curr_str) > 0 and curr_str[-1] not in {'\n', '\t', ' '}:
-                curr_str += ' '
+                if sent_new_line:
+                    curr_str += '\n'
+                else:
+                    curr_str += ' '
             if include_sent_markers:
                 curr_str += '<s>' + tp + '</s>'
             else:
@@ -461,7 +465,7 @@ def extract_pred_ent_span_set(
     return pred_source_ent_set
 
 
-def generate_input(notes, admit_date=None, discharge_date=None):
+def generate_input(notes, admit_date=None, discharge_date=None, sent_new_line=False):
     num_notes = len(notes)
     outputs = []
     for note_idx in range(len(notes)):
@@ -472,14 +476,16 @@ def generate_input(notes, admit_date=None, discharge_date=None):
 
         if admit_date is None:
             note_str = transform_text_for_llama(
-                note, include_header=True, include_title=True, include_sent_markers=False
+                note, include_header=True, include_title=True, include_sent_markers=False,
+                sent_new_line=sent_new_line
             )
         else:
             meta = generate_note_meta(
                 tags[0], note_idx, num_notes, admit_date=admit_date, discharge_date=discharge_date
             )
             note_str = transform_text_for_llama(
-                note, include_header=True, include_title=True, include_sent_markers=False, meta=[meta]
+                note, include_header=True, include_title=True, include_sent_markers=False, meta=[meta],
+                sent_new_line=sent_new_line
             )
         note_str = note_str.replace('?', ' ').replace(u'\xa0', ' ')
         outputs.append(note_str)
@@ -601,10 +607,11 @@ def run_prompt(cfg, model, tokenizer, prompt):
     DELIM = '[\INST]'
     assert DELIM in output
     generated = output.split(DELIM)[-1].replace('</s>', '').strip()
-    SECOND_DELIM = '### FULL SENTENCE:'
+    SECOND_DELIM = '### SENTENCE'
     if SECOND_DELIM in generated:
         print(generated)
-        return generated.split(SECOND_DELIM)[-1].replace('</s>', '').strip()
+        match = re.search(r'### SENTENCE ?\d*: ?', generated)
+        return generated[match.end():].strip()
     return generated
 
 
@@ -684,12 +691,16 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
                 for ent in cluster:
                     uncovered_source_set.add(ent)
 
+        covered_source_set = set(list(itertools.chain(*list(itertools.chain(*[
+            [z for z in v if cluster_is_covered[json.dumps(z)]] for k, v in ents_in_guidance.items()
+        ])))))
+
         admit_date = discharge_date = None
         if 'first_date' in example:
             admit_date = datetime.strptime(example['first_date'].split('_')[0], "%m-%d-%y").date()
             discharge_date = datetime.strptime(example['last_date'].split('_')[0], "%m-%d-%y").date()
 
-        source_input = generate_input(notes, admit_date=admit_date, discharge_date=discharge_date)
+        source_input = generate_input(notes, admit_date=admit_date, discharge_date=discharge_date, sent_new_line=True)
 
         if args.filtered:
             unaccounted_for_clusters = []
@@ -723,25 +734,31 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
 
         BHC_HEADER = '### BRIEF HOSPITAL COURSE:'
 
-        # if len(pred_sents) == 0:
-        #     suffix = f'{BHC_HEADER}\n### FIRST SENTENCE: '
-        # else:
-        #     suffix = BHC_HEADER + '\n' + '\n'.join(pred_sents) + '\n' + '### NEXT SENTENCE: '
-
         if len(pred_sents) == 0:
             suffix = f'{BHC_HEADER}'
         else:
             suffix = BHC_HEADER + '\n' + '\n'.join(pred_sents)
+        continuation = f'### ENTITIES {step + 1}: '
 
         source_transform = decorate_set_of_ents(source_input, uncovered_source_set, add_space=True)
+
         # Use only 1 word-piece token
         source_transform = re.sub(r'\s?<e>', ' {{', source_transform)
         source_transform = re.sub(r'</e>\s?', '}} ', source_transform)
-        source_transform = re.sub(r'\n{2,}', '\n\n', source_transform).strip()
         source_transform = re.sub(r'({{ ){2,}', '{{ ', source_transform)
         source_transform = re.sub(r'(}} ){2,}', '}} ', source_transform)
 
-        prompt = f'[INST]\n{INSTRUCTION}\n{source_transform}\n{suffix}\n[\INST]\n'
+        source_transform = decorate_set_of_ents(source_transform, covered_source_set, add_space=True)
+        # Use only 1 word-piece token
+        source_transform = re.sub(r'\s?<e>', ' <<', source_transform)
+        source_transform = re.sub(r'</e>\s?', '>> ', source_transform)
+        source_transform = re.sub(r'(<< ){2,}', '<< ', source_transform)
+        source_transform = re.sub(r'(>> ){2,}', '>> ', source_transform)
+
+        source_transform = re.sub(r'\n{2,}', '\n\n', source_transform).strip()
+
+        instruction = INSTRUCTIONS['sent_planning_with_reuse']
+        prompt = f'[INST]\n{instruction}\n\n{source_transform}\n\n{suffix}\n[\INST]\n{continuation}'
 
         pred_sent = run_prompt(cfg, model, tokenizer, prompt)
         sent_obj = process_prediction(args, pred_sent, tools)

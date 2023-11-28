@@ -187,9 +187,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_full'
     )
-    parser.add_argument('--ckpt', default=3000)
+    parser.add_argument('--ckpt', default=500)
 
     args = parser.parse_args()
+
+    # TODO remove this parameter
+    args.filtered = True
 
     tools = load_tools(args)
 
