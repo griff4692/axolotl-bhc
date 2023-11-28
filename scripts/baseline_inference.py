@@ -120,7 +120,10 @@ def run_example(args, cfg, example, out_dir, model, tokenizer, visit_meta):
 
     instruction = INSTRUCTIONS['baseline']
     prompt = f'[INST]\n{instruction}\n\n{source_input}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
+
     prediction = run_prompt(cfg, model, tokenizer, prompt)
+
+    torch.cuda.empty_cache()
 
     print('\n\n')
     print(prediction)
