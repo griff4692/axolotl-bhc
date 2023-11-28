@@ -9,12 +9,12 @@ load_in_4bit: false
 strict: false
 
 datasets:
-  - path: /nlp/projects/summarization/bhc_data_cleanup/prompt_sent_focus_plan_instruct.jsonl
+  - path: /nlp/projects/summarization/bhc_data_cleanup/prompt_sent_focus.jsonl
     type: summarizetldr
 
 dataset_prepared_path:
 val_set_size: 0.01
-output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_w_plan_v4
+output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_full
 
 sequence_len: 8192
 sample_packing: false
@@ -23,7 +23,7 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: sent_focus_w_plan_v4
+wandb_run_id: sent_focus_full
 wandb_log_model:
 
 gradient_accumulation_steps: 8
@@ -54,7 +54,7 @@ eval_table_max_new_tokens: 128
 save_steps: 250
 save_strategy: steps
 debug:
-deepspeed: /home/ga2530/axolotl-bhc/deepspeed/zero3.json
+deepspeed: /home/ga2530/axolotl-bhc/deepspeed/zero2.json
 weight_decay: 0.0
 fsdp:
 fsdp_config:
