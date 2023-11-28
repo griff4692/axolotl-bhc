@@ -23,7 +23,7 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: frost_instruct_shuffled
+wandb_run_id: frost_instruct_shuffled_at_end
 wandb_log_model:
 
 gradient_accumulation_steps: 4

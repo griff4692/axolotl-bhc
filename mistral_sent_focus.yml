@@ -14,7 +14,7 @@ datasets:
 
 dataset_prepared_path:
 val_set_size: 0.01
-output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_w_plan_v3
+output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_w_plan_v4
 
 sequence_len: 8192
 sample_packing: false
@@ -23,7 +23,7 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: sent_focus_w_plan_v3
+wandb_run_id: sent_focus_w_plan_v4
 wandb_log_model:
 
 gradient_accumulation_steps: 8

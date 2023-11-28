@@ -80,9 +80,10 @@ def run_prompt(cfg, model, tokenizer, prompt):
         )
 
     output = tokenizer.decode(generated['sequences'].cpu().tolist()[0])
+    output = output.replace('<s>', '').replace('</s>', '')
     sep = '### BRIEF HOSPITAL COURSE:'
     assert sep in output
-    return output.split(sep)[-1].replace('</s>', '').strip(), output
+    return output.split(sep)[-1].strip(), output
 
 
 def split_into_notes(html_str):
@@ -174,7 +175,7 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
         is_malformed = False
         valid_lines = []
         for line in full_output.split('\n'):
-            if '### ENTITIES' in line:
+            if line.startswith('### ENTITIES'):
                 ents = re.findall(r'{{ ([^}]+) }}', line)
                 counter = Counter(ents).most_common()
                 if len(counter) > 0 and counter[0][1] >= 3:
@@ -184,7 +185,7 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
                     uniq_ent_str = '; '.join(['{{ ' + ent + ' }}' for ent in uniq_ents])
                     sent_num = re.search(r'### ENTITIES (\d+):', line).group(1)
                     valid_lines.append(f'### ENTITIES {sent_num}: {uniq_ent_str}')
-                    partial_prompt = '\n'.join(valid_lines).replace('<s>', '').strip() + '\n' + f'### SENTENCE {sent_num}: '
+                    partial_prompt = '\n'.join(valid_lines).strip() + '\n' + f'### SENTENCE {sent_num}: '
                     output, full_output = run_prompt(cfg, model, tokenizer, partial_prompt)
                     break
                 else:
@@ -201,7 +202,7 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
         elif line.startswith('### ENTITIES'):
             plan_sents.append(re.sub(r'### ENTITIES \d+:', '', line).strip())
         else:
-            raise Exception('???')
+            print(f'Malformed output: {line}. Skipping.')
 
     print('\n\n')
     print(output)

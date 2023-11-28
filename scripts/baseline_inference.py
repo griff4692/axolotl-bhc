@@ -65,6 +65,8 @@ def run_prompt(cfg, model, tokenizer, prompt):
             generation_config=generation_config,
         )
 
+    torch.cuda.empty_cache()
+
     output = tokenizer.decode(generated['sequences'].cpu().tolist()[0])
     sep = '### BRIEF HOSPITAL COURSE:'
     assert sep in output
