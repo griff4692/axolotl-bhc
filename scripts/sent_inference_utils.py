@@ -465,7 +465,7 @@ def extract_pred_ent_span_set(
     return pred_source_ent_set
 
 
-def generate_input(notes, admit_date=None, discharge_date=None, sent_new_line=False):
+def generate_input(notes, admit_date=None, discharge_date=None, sent_new_line=False, include_title=True):
     num_notes = len(notes)
     outputs = []
     for note_idx in range(len(notes)):
@@ -476,7 +476,7 @@ def generate_input(notes, admit_date=None, discharge_date=None, sent_new_line=Fa
 
         if admit_date is None:
             note_str = transform_text_for_llama(
-                note, include_header=True, include_title=True, include_sent_markers=False,
+                note, include_header=True, include_title=include_title, include_sent_markers=False,
                 sent_new_line=sent_new_line
             )
         else:
@@ -484,7 +484,7 @@ def generate_input(notes, admit_date=None, discharge_date=None, sent_new_line=Fa
                 tags[0], note_idx, num_notes, admit_date=admit_date, discharge_date=discharge_date
             )
             note_str = transform_text_for_llama(
-                note, include_header=True, include_title=True, include_sent_markers=False, meta=[meta],
+                note, include_header=True, include_title=include_title, include_sent_markers=False, meta=[meta],
                 sent_new_line=sent_new_line
             )
         note_str = note_str.replace('?', ' ').replace(u'\xa0', ' ')
@@ -700,7 +700,10 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
             admit_date = datetime.strptime(example['first_date'].split('_')[0], "%m-%d-%y").date()
             discharge_date = datetime.strptime(example['last_date'].split('_')[0], "%m-%d-%y").date()
 
-        source_input = generate_input(notes, admit_date=admit_date, discharge_date=discharge_date, sent_new_line=True)
+        source_input = generate_input(
+            notes, admit_date=admit_date, discharge_date=discharge_date, sent_new_line=True,
+            include_title=len(notes) <= 100
+        )
 
         if args.filtered:
             unaccounted_for_clusters = []

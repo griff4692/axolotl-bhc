@@ -116,7 +116,10 @@ def run_example(args, cfg, example, out_dir, model, tokenizer, visit_meta):
         admit_date = datetime.strptime(example['first_date'].split('_')[0], "%m-%d-%y").date()
         discharge_date = datetime.strptime(example['last_date'].split('_')[0], "%m-%d-%y").date()
 
-    source_input = generate_input(notes, admit_date=admit_date, discharge_date=discharge_date)
+    source_input = generate_input(
+        notes, admit_date=admit_date, discharge_date=discharge_date,
+        include_title=len(notes) <= 100
+    )
 
     instruction = INSTRUCTIONS['baseline']
     prompt = f'[INST]\n{instruction}\n\n{source_input}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
@@ -153,8 +156,8 @@ def baseline_inference(
     print('Loading model and tokenizer...')
     print(f'cfg.device={cfg.device}')
     model, tokenizer = load_model_and_tokenizer(cfg=cfg, cli_args=cli_args)
-    default_tokens = {"unk_token": "<unk>", "bos_token": "<s>", "eos_token": "</s>"}
     model = model.to(torch.bfloat16).eval()
+    default_tokens = {"unk_token": "<unk>", "bos_token": "<s>", "eos_token": "</s>"}
 
     for token, symbol in default_tokens.items():
         # If the token isn't already specified in the config, add it
@@ -231,8 +234,6 @@ if __name__ == '__main__':
     parser.add_argument('-overwrite', default=False, action='store_true')
 
     parser.add_argument('--max_examples', default=1000, type=int)
-    parser.add_argument('--max_summary_tokens', default=1024, type=int)
-    parser.add_argument('--max_prompt_tokens', default=4096, type=int)
 
     parser.add_argument('-human', default=False, action='store_true')
 

@@ -132,7 +132,10 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
         admit_date = datetime.strptime(example['first_date'].split('_')[0], "%m-%d-%y").date()
         discharge_date = datetime.strptime(example['last_date'].split('_')[0], "%m-%d-%y").date()
 
-    source_input = generate_input(notes, admit_date=admit_date, discharge_date=discharge_date)
+    source_input = generate_input(
+        notes, admit_date=admit_date, discharge_date=discharge_date,
+        include_title=len(notes) <= 100
+    )
 
     ent_suffix = '' if args.dataset == 'epic' else f'_{args.dataset}'
     merge_fn = os.path.join(IN_DIR, f'entity_stanza{ent_suffix}_top_ents', f'{example_id}.json')
@@ -336,7 +339,6 @@ if __name__ == '__main__':
     parser.add_argument('-overwrite', default=False, action='store_true')
 
     parser.add_argument('--max_examples', default=1000, type=int)
-    parser.add_argument('--max_prompt_tokens', default=4096, type=int)
 
     parser.add_argument('-human', default=False, action='store_true')
 

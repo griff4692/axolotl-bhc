@@ -119,7 +119,10 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
         admit_date = datetime.strptime(example['first_date'].split('_')[0], "%m-%d-%y").date()
         discharge_date = datetime.strptime(example['last_date'].split('_')[0], "%m-%d-%y").date()
 
-    source_input = generate_input(notes, admit_date=admit_date, discharge_date=discharge_date)
+    source_input = generate_input(
+        notes, admit_date=admit_date, discharge_date=discharge_date,
+        include_title=len(notes) <= 100
+    )
     instruction = INSTRUCTIONS['frost']
 
     # Entity Stuff
@@ -135,7 +138,7 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
 
     guidance = f'### ENTITIES\nPROBLEMS: {problems}\nTREATMENTS: {treatments}\nTESTS: {tests}'
 
-    prompt = f'[INST]\n{instruction}\n\n{guidance}\n\n{source_input}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
+    prompt = f'[INST]\n{instruction}\n\n{source_input}\n\n{guidance}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
 
     prediction = run_prompt(cfg, model, tokenizer, prompt)
     prediction = '\n'.join(remove_duplicates_preserve_order(prediction.split('\n')))
@@ -269,8 +272,6 @@ if __name__ == '__main__':
     parser.add_argument('-overwrite', default=False, action='store_true')
 
     parser.add_argument('--max_examples', default=1000, type=int)
-    parser.add_argument('--max_summary_tokens', default=1024, type=int)
-    parser.add_argument('--max_prompt_tokens', default=4096, type=int)
 
     parser.add_argument('-human', default=False, action='store_true')
 
