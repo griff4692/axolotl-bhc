@@ -1,5 +1,5 @@
-base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct
-base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct
+base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_w_plan_v4/checkpoint-3400
+base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_w_plan_v4/checkpoint-3400
 model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
 is_mistral_derived_model: true
@@ -14,7 +14,7 @@ datasets:
 
 dataset_prepared_path:
 val_set_size: 0.01
-output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_full
+output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_full_v2
 
 sequence_len: 8192
 sample_packing: false
@@ -23,10 +23,10 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: sent_focus_full
+wandb_run_id: sent_focus_full_v2
 wandb_log_model:
 
-gradient_accumulation_steps: 8
+gradient_accumulation_steps: 4
 micro_batch_size: 1
 num_epochs: 1
 optimizer: adamw_bnb_8bit
@@ -54,10 +54,11 @@ eval_table_max_new_tokens: 128
 save_steps: 250
 save_strategy: steps
 debug:
-deepspeed: /home/ga2530/axolotl-bhc/deepspeed/zero2.json
+deepspeed: /home/ga2530/axolotl-bhc/deepspeed/zero3.json
 weight_decay: 0.0
 fsdp:
 fsdp_config:
+dataset_processes: 4
 special_tokens:
   bos_token: "<s>"
   eos_token: "</s>"
