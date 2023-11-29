@@ -1,5 +1,5 @@
-base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct
-base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct
+base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline
+base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline
 model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
 is_mistral_derived_model: true
