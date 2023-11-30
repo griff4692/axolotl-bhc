@@ -1,5 +1,5 @@
-base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct
-base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct
+base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline
+base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline
 model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
 is_mistral_derived_model: true
@@ -14,7 +14,7 @@ datasets:
 
 dataset_prepared_path:
 val_set_size: 0.005
-output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct_epoch_2
+output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_ctd
 
 sequence_len: 8192
 sample_packing: false
@@ -23,7 +23,7 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: baseline_instruct_epoch_2
+wandb_run_id: baseline_ctd
 wandb_log_model:
 
 gradient_accumulation_steps: 8
