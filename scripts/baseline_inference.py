@@ -238,8 +238,8 @@ if __name__ == '__main__':
     parser.add_argument('-human', default=False, action='store_true')
 
     # Llama Arguments
-    parser.add_argument('--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_instruct')
-    # parser.add_argument('--ckpt', default=3700)
+    parser.add_argument('--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline_ctd')
+    parser.add_argument('--ckpt', default=1000)
 
     args = parser.parse_args()
 
@@ -251,7 +251,7 @@ if __name__ == '__main__':
     print_axolotl_text_art()
     parsed_cfg = load_cfg(config, **kwargs)
     parsed_cfg.sample_packing = False
-    parsed_cfg.base_model = os.path.join(args.base_model)  # , f'checkpoint-{args.ckpt}')
+    parsed_cfg.base_model = os.path.join(args.base_model, f'checkpoint-{args.ckpt}')
     assert os.path.exists(parsed_cfg.base_model)
     parsed_cfg.base_model_config = args.base_model
     parser = transformers.HfArgumentParser((TrainerCliArgs))
