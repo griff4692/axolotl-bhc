@@ -607,6 +607,7 @@ def run_prompt(cfg, model, tokenizer, prompt):
     DELIM = '[\INST]'
     assert DELIM in output
     generated = output.split(DELIM)[-1].replace('</s>', '').strip()
+    print(generated)
     SECOND_DELIM = '### SENTENCE'
     if SECOND_DELIM in generated:
         print(generated)
