@@ -164,7 +164,6 @@ if __name__ == '__main__':
     parser.add_argument('--device', default=0, type=int)
     parser.add_argument('-debug', default=False, action='store_true')
     parser.add_argument('-overwrite', default=False, action='store_true')
-    parser.add_argument('-filtered', default=False, action='store_true')
 
     parser.add_argument('--max_examples', default=1000, type=int)
     parser.add_argument('--max_gen_sents', default=50, type=int)
