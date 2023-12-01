@@ -125,6 +125,7 @@ def run_example(args, cfg, example, out_dir, model, tokenizer, visit_meta):
     prompt = f'[INST]\n{instruction}\n\n{source_input}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
 
     prediction = run_prompt(cfg, model, tokenizer, prompt)
+    prediction = '\n'.join(remove_duplicates_preserve_order(prediction.split('\n')))
 
     torch.cuda.empty_cache()
 
