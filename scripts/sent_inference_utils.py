@@ -705,32 +705,14 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
             include_title=len(notes) <= 100
         )
 
-        if args.filtered:
-            unaccounted_for_clusters = []
-        else:
-            source_input, unaccounted_for_clusters = filter_to_max_token_limit(
-                source_input, uncovered_clusters, args.max_prompt_tokens
-            )
-
-        unaccounted_for_clusters_json = list(map(ujson.dumps, unaccounted_for_clusters))
         source_input = re.sub(r'\n{2,}', '\n\n', source_input).strip()
 
-        # We might have filtered out some of the text when truncating to maximum window
-        uncovered_by_type_accounted_for = {
-            'problems': [
-                c for c in uncovered_by_type['problems'] if ujson.dumps(c) not in unaccounted_for_clusters_json
-            ],
-            'treatments': [
-                c for c in uncovered_by_type['treatments'] if ujson.dumps(c) not in unaccounted_for_clusters_json
-            ],
-            'tests': [
-                c for c in uncovered_by_type['tests'] if ujson.dumps(c) not in unaccounted_for_clusters_json
-            ],
-        }
-
-        uncovered_problem_str = '; '.join([x[0] for x in uncovered_by_type_accounted_for['problems']])
-        uncovered_treatment_str = '; '.join([x[0] for x in uncovered_by_type_accounted_for['treatments']])
-        uncovered_test_str = '; '.join([x[0] for x in uncovered_by_type_accounted_for['tests']])
+        uncovered_problem_str = '; '.join([x[0] for x in uncovered_by_type['problems']])
+        uncovered_treatment_str = '; '.join([x[0] for x in uncovered_by_type['treatments']])
+        uncovered_test_str = '; '.join([x[0] for x in uncovered_by_type['tests']])
+        num_uncovered = (
+            len(uncovered_by_type['problems']) + len(uncovered_by_type['treatments']) + len(uncovered_by_type['tests'])
+        )
 
         guidance = f'### PROBLEMS: {uncovered_problem_str} ### TREATMENTS: ' \
                    f'{uncovered_treatment_str} ### TESTS: {uncovered_test_str}'
@@ -742,6 +724,7 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
         else:
             suffix = BHC_HEADER + '\n' + '\n'.join(pred_sents)
         continuation = f'### ENTITIES {step + 1}: '
+        uncovered_num_str = f'### UNCOVERED {step + 1}: {num_uncovered}'
 
         source_transform = decorate_set_of_ents(source_input, uncovered_source_set, add_space=True)
 
@@ -761,7 +744,7 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
         source_transform = re.sub(r'\n{2,}', '\n\n', source_transform).strip()
 
         instruction = INSTRUCTIONS['sent_planning_with_reuse']
-        prompt = f'[INST]\n{instruction}\n\n{source_transform}\n\n{suffix}\n[\INST]\n{continuation}'
+        prompt = f'[INST]\n{instruction}\n\n{source_transform}\n\n{suffix}\n[\INST]\n{uncovered_num_str}\n{continuation}'
 
         pred_sent = run_prompt(cfg, model, tokenizer, prompt)
         sent_obj = process_prediction(args, pred_sent, tools)
