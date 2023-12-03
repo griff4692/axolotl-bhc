@@ -609,11 +609,12 @@ def run_prompt(cfg, model, tokenizer, prompt):
     generated = output.split(DELIM)[-1].replace('</s>', '').strip()
     print(generated)
     SECOND_DELIM = '### SENTENCE'
-    if SECOND_DELIM in generated:
-        print(generated)
-        match = re.search(r'### SENTENCE ?\d*: ?', generated)
-        return generated[match.end():].strip()
-    return generated
+    print(generated)
+    match = re.search(r'### SENTENCE ?\d*: ?', generated)
+    suffix = generated[match.end():].strip()
+    lines = suffix.split('\n')
+    assert len(lines) == 2
+    return lines[0].strip(), lines[1].strip() == '<c>'
 
 
 def load_tools(args):
@@ -747,8 +748,11 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, tools, m
         instruction = INSTRUCTIONS['sent_planning_with_reuse']
         prompt = f'[INST]\n{instruction}\n\n{source_transform}\n\n{suffix}\n[\INST]\n{uncovered_num_str}\n{continuation}'
 
-        pred_sent = run_prompt(cfg, model, tokenizer, prompt)
+        pred_sent, should_continue = run_prompt(cfg, model, tokenizer, prompt)
         sent_obj = process_prediction(args, pred_sent, tools)
+        if not should_continue:
+            print('Predicted the end')
+            break
         if pred_sent in pred_sents:
             print('Predicted already generated sentence. Breaking and returning summary.')
             break
