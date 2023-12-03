@@ -254,22 +254,13 @@ def focus_inference(
     print('Reading in dataset...')
     visit_meta = {}
     data_dir = f'/nlp/projects/summarization/bhc_data_cleanup/mistral_inference/{args.dataset}_8192'
-    if args.dataset == 'cumc':
-        # data_dir = f'/nlp/projects/summarization/bhc_data_cleanup/cumc_test'
-        print(f'Reading in data from {data_dir}')
-        data = load_from_disk(data_dir)
-    elif args.dataset == 'epic':
-        # data_dir = '/nlp/projects/summarization/bhc_data_cleanup/summarization_deduped_dataset'
+    print(f'Reading in data from {data_dir}')
+    data = load_from_disk(data_dir)
+    if args.dataset == 'epic':
         visit_meta = pd.read_csv('/nlp/projects/summarization/bhc_data_cleanup/bhc_test_meta.csv')
         visit_meta = {
             row['visit_id']: row for row in visit_meta.to_dict('records')
         }
-        print(f'Reading in data from {data_dir}')
-        data = load_from_disk(data_dir)
-    else:
-        # data_dir = '/nlp/projects/summarization/bhc_data_cleanup/mimic_test_filt'
-        print(f'Reading in data from {data_dir}')
-        data = load_from_disk(data_dir)
 
     if args.dataset == 'epic':
         if args.human:
