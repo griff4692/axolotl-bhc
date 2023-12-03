@@ -273,7 +273,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_instruct'
     )
-    parser.add_argument('--ckpt', default=3500)
+    parser.add_argument('--ckpt', default=4000)
 
     args = parser.parse_args()
 
