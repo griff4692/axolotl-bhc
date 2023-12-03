@@ -56,7 +56,7 @@ def sent_inference(
         if not (cfg.special_tokens and token in cfg.special_tokens):
             tokenizer.add_special_tokens({token: symbol})
 
-    out_dir = os.path.join(cfg.output_dir, 'predictions')
+    out_dir = os.path.join(cfg.output_dir, f'{args.dataset}_{args.ckpt}')
     out_fn = f'{out_dir}.csv'
     os.makedirs(out_dir, exist_ok=True)
 
