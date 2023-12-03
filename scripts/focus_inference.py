@@ -323,7 +323,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', default='/nlp/projects/summarization/bhc_data_cleanup')
 
     parser.add_argument('--dataset', default='epic')
-    parser.add_argument('--config', default='focus_plan')
+    parser.add_argument('--config', default='focus')
 
     parser.add_argument('--device', default=0, type=int)
     parser.add_argument('-debug', default=False, action='store_true')
