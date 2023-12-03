@@ -245,6 +245,7 @@ if __name__ == '__main__':
     print_axolotl_text_art()
     parsed_cfg = load_cfg(config, **kwargs)
     parsed_cfg.sample_packing = False
+
     if args.ckpt == 'final':
         parsed_cfg.base_model = args.base_model
     else:
