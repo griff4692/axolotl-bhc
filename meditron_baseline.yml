@@ -9,7 +9,7 @@ load_in_4bit: false
 strict: false
 
 datasets:
-  - path: /nlp/projects/summarization/bhc_data_cleanup/prompt_baseline.jsonl
+  - path: /nlp/projects/summarization/bhc_data_cleanup/meditron_baseline.jsonl
     type: summarizetldr
 
 dataset_prepared_path:
@@ -23,7 +23,7 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: meditron_baseline
+wandb_run_id: meditron_baseline_v1
 wandb_log_model:
 
 gradient_accumulation_steps: 16
