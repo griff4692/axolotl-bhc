@@ -1,20 +1,20 @@
-base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline
-base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/baseline
-model_type: MistralForCausalLM
+base_model: epfl-llm/meditron-7b
+base_model_config: epfl-llm/meditron-7b
+model_type: LlamaForCausalLM
 tokenizer_type: LlamaTokenizer
-is_mistral_derived_model: true
+is_llama_derived_model: true
 
 load_in_8bit: false
 load_in_4bit: false
 strict: false
 
 datasets:
-  - path: /nlp/projects/summarization/bhc_data_cleanup/prompt_focus_instruct.jsonl
+  - path: /nlp/projects/summarization/bhc_data_cleanup/prompt_baseline.jsonl
     type: summarizetldr
 
 dataset_prepared_path:
 val_set_size: 0.005
-output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/focus
+output_dir: /nlp/projects/summarization/bhc_data_cleanup/meditron_weights/baseline
 
 sequence_len: 8192
 sample_packing: false
@@ -23,15 +23,15 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: focus
+wandb_run_id: meditron_baseline
 wandb_log_model:
 
-gradient_accumulation_steps: 8
+gradient_accumulation_steps: 16
 micro_batch_size: 1
 num_epochs: 1
 optimizer: adamw_bnb_8bit
 lr_scheduler: cosine
-learning_rate: 0.000005
+learning_rate: 0.0002
 
 train_on_inputs: false
 group_by_length: false
@@ -48,10 +48,10 @@ xformers_attention:
 flash_attention: true
 
 warmup_steps: 10
-eval_steps: 100
+eval_steps: 500
 eval_table_size:
 eval_table_max_new_tokens: 128
-save_steps: 100
+save_steps: 500
 save_strategy: steps
 debug:
 deepspeed: /home/ga2530/axolotl-bhc/deepspeed/zero2.json

@@ -184,9 +184,9 @@ if __name__ == '__main__':
     # Mistral Arguments
     parser.add_argument('--max_new_tokens', type=int, default=300)
     parser.add_argument(
-        '--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_final'
+        '--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/sent_focus_fixed'
     )
-    parser.add_argument('--ckpt', default=1000)
+    parser.add_argument('--ckpt', default=1500)
 
     args = parser.parse_args()
 
