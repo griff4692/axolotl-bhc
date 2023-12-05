@@ -89,8 +89,13 @@ if __name__ == '__main__':
 
     args.cached_fn = os.path.join('/nlp/projects/summarization/bhc_data_cleanup/mistral_weights', args.cached_suffix)
     print(f'Loading predictions from from {args.cached_fn}.csv')
+
     df = pd.read_csv(args.cached_fn + '.csv')
-    exid2preds = {row['example_id']: row['prediction'] for row in df.to_dict('records')}
+    records = df.to_dict('records')
+    if args.max_examples < len(df):
+        records = records[:args.max_examples]
+
+    exid2preds = {row['example_id']: row['prediction'] for row in records}
 
     out_dir = '~/invalid'
     out_fn = args.cached_fn + '_w_llm.csv'
@@ -114,9 +119,6 @@ if __name__ == '__main__':
         data_dir = '/nlp/projects/summarization/bhc_data_cleanup/mimic_test_filt'
         print(f'Reading in data from {data_dir}')
         data = load_from_disk(data_dir)
-
-    if args.max_examples < len(data):
-        data = data.select(range(args.max_examples))
 
     exid2source = {row['example_id']: row['source'] for row in data}
 
