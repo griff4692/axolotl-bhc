@@ -27,12 +27,15 @@ def run_prompt(prompt, model, tokenizer):
             do_sample=False,
             use_cache=True,
         )
+
         generated = model.generate(
             inputs=batch['input_ids'].to(model.device),
             generation_config=generation_config,
         )
 
-    return generated
+    output = tokenizer.decode(generated['sequences'].cpu().tolist()[0])
+    output = output.replace('<s>', '').replace('</s>', '')
+    return output
 
 
 def top_k(rouge, pred, source_sents, k=5):
@@ -139,7 +142,7 @@ if __name__ == '__main__':
         for pred_sent in pred_sents:
             context, _ = top_k(rouge, pred_sent, full_note_sents_flat)
             system = '<|system|>\nThe information in the SUMMARY sentence can be traced back to the SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
-            user = f'<|user|>\nEVIDENCE: {context}\nCLAIM: {pred_sent}</s>'
+            user = f'<|user|>\nSOURCE: {context}\nSUMMARY: {pred_sent}</s>'
             assistant = '<|assistant|>\nSCORE: '
             prompt = f'{system}\n{user}\n{assistant}'
 
