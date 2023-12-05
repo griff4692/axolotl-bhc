@@ -163,6 +163,6 @@ if __name__ == '__main__':
         print('Avg Faithfulness: ', round(pd.DataFrame(outputs)['score'].mean(), 3))
 
     outputs = pd.DataFrame(outputs)
-    print(f'Saving faithfulness scores to {args.out_fn}...')
+    print(f'Saving faithfulness scores to {out_fn}...')
     print('Final Avg Faithfulness: -> ', round(outputs['score'].mean(), 3))
     outputs.to_csv(out_fn, index=False)
