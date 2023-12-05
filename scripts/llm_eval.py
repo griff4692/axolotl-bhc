@@ -97,7 +97,6 @@ if __name__ == '__main__':
 
     exid2preds = {row['example_id']: row['prediction'] for row in records}
 
-    out_dir = '~/invalid'
     out_fn = args.cached_fn + '_w_llm.csv'
     print(f'Saving metrics to {out_fn}')
 
@@ -162,3 +161,8 @@ if __name__ == '__main__':
         outputs.append(out_row)
 
         print('Avg Faithfulness: ', round(pd.DataFrame(outputs)['score'].mean(), 3))
+
+    outputs = pd.DataFrame(outputs)
+    print(f'Saving faithfulness scores to {args.out_fn}...')
+    print('Final Avg Faithfulness: -> ', round(outputs['score'].mean(), 3))
+    outputs.to_csv(out_fn, index=False)
