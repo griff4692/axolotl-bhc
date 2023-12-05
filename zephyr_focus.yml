@@ -1,37 +1,37 @@
-base_model: epfl-llm/meditron-7b
-base_model_config: epfl-llm/meditron-7b
-model_type: LlamaForCausalLM
+base_model: HuggingFaceH4/zephyr-7b-beta
+base_model_config: HuggingFaceH4/zephyr-7b-beta
+model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
-is_llama_derived_model: true
+is_mistral_derived_model: true
 
 load_in_8bit: false
 load_in_4bit: false
 strict: false
 
 datasets:
-  - path: /nlp/projects/summarization/bhc_data_cleanup/meditron_baseline_debug.jsonl
+  - path: /nlp/projects/summarization/bhc_data_cleanup/zephyr_focus.jsonl
     type: summarizetldr
 
 dataset_prepared_path:
 val_set_size: 0.005
-output_dir: /nlp/projects/summarization/bhc_data_cleanup/meditron_weights/baseline
+output_dir: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/focus
 
-sequence_len: 4096
+sequence_len: 8192
 sample_packing: false
 pad_to_sequence_len: true
 
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: meditron_baseline_debug
+wandb_run_id: zephyr_focus
 wandb_log_model:
 
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 4
 micro_batch_size: 1
 num_epochs: 1
 optimizer: adamw_bnb_8bit
 lr_scheduler: cosine
-learning_rate: 0.0002
+learning_rate: 0.000005
 
 train_on_inputs: false
 group_by_length: false
