@@ -2,15 +2,37 @@ import regex as re
 import os
 
 import numpy as np
+import torch
 from datasets import load_from_disk
-from transformers import pipeline
-from transformers import AutoTokenizer, AutoModelForCausalLM, MistralForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, MistralForCausalLM, GenerationConfig
+# Load model directly
 import argparse
 import itertools
 import pandas as pd
 from sent_inference_utils import transform_text_for_llama
 from nltk import sent_tokenize
 from evaluate import load
+
+
+def run_prompt(prompt, model, tokenizer):
+    batch = tokenizer(prompt, return_tensors='pt', add_special_tokens=True)
+
+    model.eval()
+    with torch.no_grad():
+        generation_config = GenerationConfig(
+            max_new_tokens=1,
+            bos_token_id=tokenizer.bos_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+            pad_token_id=tokenizer.pad_token_id,
+            do_sample=False,
+            use_cache=True,
+        )
+        generated = model.generate(
+            inputs=batch['input_ids'].to(model.device),
+            generation_config=generation_config,
+        )
+
+    return generated
 
 
 def top_k(rouge, pred, source_sents, k=5):
@@ -51,7 +73,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    pipe = pipeline('text-generation', model='HuggingFaceH4/zephyr-7b-beta', device=args.device)
+    tokenizer = AutoTokenizer.from_pretrained('HuggingFaceH4/zephyr-7b-beta')
+    model = AutoModelForCausalLM.from_pretrained(
+        'HuggingFaceH4/zephyr-7b-beta',
+        torch_dtype=torch.bfloat16,
+        use_flash_attention_2=True,
+    ).to(args.device)
+    model.eval()
 
     rouge = load('rouge', keep_in_memory=True)
 
@@ -115,7 +143,7 @@ if __name__ == '__main__':
             assistant = '<|assistant|>\nSCORE: '
             prompt = f'{system}\n{user}\n{assistant}'
 
-            output = pipe(prompt, max_new_tokens=1, do_sample=False)[0]['generated_text'].strip()
+            output = run_prompt(prompt, model, tokenizer)
 
             score = int(output[-1])
             sent_scores.append(score)
