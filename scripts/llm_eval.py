@@ -110,7 +110,7 @@ if __name__ == '__main__':
         sent_scores = []
         for pred_sent in pred_sents:
             context, _ = top_k(rouge, pred_sent, full_note_sents_flat)
-            system = '<|system|>\nThe information in the SUMMARY sentence can be traced back to the SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).</s>'
+            system = '<|system|>\nThe information in the SUMMARY sentence can be traced back to the SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
             user = f'<|user|>\nEVIDENCE: {context}\nCLAIM: {pred_sent}</s>'
             assistant = '<|assistant|>\nSCORE: '
             prompt = f'{system}\n{user}\n{assistant}'
