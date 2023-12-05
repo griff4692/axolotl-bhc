@@ -163,7 +163,12 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
     source_transform = re.sub(r'(}} ){2,}', '}} ', source_transform)
 
     instruction = INSTRUCTIONS['sent_planning']
-    prompt = f'[INST]\n{instruction}\n\n{source_transform}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
+    start = '### BRIEF HOSPITAL COURSE:'
+    if args.pretrained_model == 'mistral':
+        prompt = f'[INST]\n{instruction}\n\n{source_transform}\n[/INST]\n{start}\n'
+    else:
+        prompt = f'<|system|>\n{instruction}</s>\n<|user|>\n{source_transform}</s>\n<|assistant|>\n{start}\n'
+
     output, full_output = run_prompt(cfg, model, tokenizer, prompt)
 
     plan_sents = []
