@@ -122,7 +122,12 @@ def run_example(args, cfg, example, out_dir, model, tokenizer, visit_meta):
     )
 
     instruction = INSTRUCTIONS['baseline']
-    prompt = f'[INST]\n{instruction}\n\n{source_input}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
+
+    start = '### BRIEF HOSPITAL COURSE:'
+    if args.pretrained_model == 'mistral':
+        prompt = f'[INST]\n{instruction}\n\n{source_input}\n[/INST]\n{start}\n'
+    else:
+        prompt = f'<|system|>\n{instruction}</s>\n<|user|>\n{source_input}</s>\n<|assistant|>\n{start}\n'
 
     prediction = run_prompt(cfg, model, tokenizer, prompt)
     prediction = '\n'.join(remove_duplicates_preserve_order(prediction.split('\n')))
