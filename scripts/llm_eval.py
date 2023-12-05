@@ -49,7 +49,6 @@ if __name__ == '__main__':
     parser.add_argument('-human', default=False, action='store_true')
     parser.add_argument('-overwrite', default=False, action='store_true')
 
-
     args = parser.parse_args()
 
     pipe = pipeline('text-generation', model='HuggingFaceH4/zephyr-7b-beta', device=args.device)

@@ -334,15 +334,19 @@ if __name__ == '__main__':
     parser.add_argument('-human', default=False, action='store_true')
 
     # Mistral Arguments
-    parser.add_argument('--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/focus')
-    parser.add_argument('--ckpt', default=4000)
+    parser.add_argument('--pretrained_model', default='zephyr')
+    parser.add_argument(
+        '--experiment', default='focus'
+    )
+    parser.add_argument('--ckpt', default=500)
 
     # Entity Parameters
     parser.add_argument('--pred_ent_threshold', default=0.81, type=float)
 
     args = parser.parse_args()
 
-    config = Path(os.path.expanduser(f'~/axolotl-bhc/mistral_{args.config}.yml'))
+    args.base_model = os.path.join(args.data_dir, f'{args.pretrained_model}_weights', args.experiment)
+    config = Path(os.path.expanduser(f'~/axolotl-bhc/{args.pretrained_model}_{args.config}.yml'))
 
     kwargs = {}
     # pylint: disable=duplicate-code
