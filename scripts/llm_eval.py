@@ -98,7 +98,8 @@ if __name__ == '__main__':
 
     exid2preds = {row['example_id']: row['prediction'] for row in records}
 
-    out_fn = args.cached_fn + '_w_llm.csv'
+    granularity = 'summary' if args.summary_level else 'sent'
+    out_fn = args.cached_fn + f'_w_{granularity}_faith.csv'
     print(f'Saving metrics to {out_fn}')
 
     print('Reading in dataset...')
