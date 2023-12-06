@@ -4,6 +4,7 @@ import os
 import numpy as np
 import torch
 from datasets import load_from_disk
+from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer, AutoModelForCausalLM, MistralForCausalLM, GenerationConfig
 # Load model directly
 import argparse
@@ -78,13 +79,19 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    tokenizer = AutoTokenizer.from_pretrained('HuggingFaceH4/zephyr-7b-beta')
-    model = AutoModelForCausalLM.from_pretrained(
-        'HuggingFaceH4/zephyr-7b-beta',
-        torch_dtype=torch.bfloat16,
-        use_flash_attention_2=True,
-    ).to(args.device)
-    model.eval()
+    # tokenizer = AutoTokenizer.from_pretrained('TheBloke/Yi-34B-Chat-AWQ')
+    # model = AutoModelForCausalLM.from_pretrained(
+    #     # 'HuggingFaceH4/zephyr-7b-beta',
+    #     'TheBloke/Yi-34B-Chat-AWQ',
+    #     # torch_dtype=torch.bfloat16,
+    #     low_cpu_mem_usage = True,
+    #     use_flash_attention_2=True,
+    #     device_map=f'cuda:{args.device}'
+    # )
+    # model.eval()
+
+    sampling_params = SamplingParams(temperature=0.0, max_tokens=2)
+    llm = LLM(model='TheBloke/Yi-34B-Chat-AWQ', quantization='awq', dtype='auto', gpu_memory_utilization=0.95)
 
     rouge = load('rouge', keep_in_memory=True)
 
@@ -141,13 +148,17 @@ if __name__ == '__main__':
         full_note_sents_flat = list(itertools.chain(*full_note_sents))
 
         if args.summary_level:
-            context, _ = top_k(rouge, pred, full_note_sents_flat, k=100)
-            system = '<|system|>\nThe information in the SUMMARY can be traced back to the preceeding SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
-            user = f'<|user|>\nSOURCE:\n{context}\nSUMMARY:\n{pred}</s>'
-            assistant = '<|assistant|>\nSCORE (1-5): '
-            prompt = f'{system}\n{user}\n{assistant}'
+            context, _ = top_k(rouge, pred, full_note_sents_flat, k=5)
+            # system = '<|system|>\nThe information in the SUMMARY can be traced back to the preceeding SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
+            system = 'The information in the SUMMARY can be traced back to the preceeding SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree'
+            user = f'SOURCE:\n{context}\nSUMMARY:\n{pred}'
+            # user = f'<|user|>\nSOURCE:\n{context}\nSUMMARY:\n{pred}</s>'
+            # assistant = '<|assistant|>\nSCORE (1-5): '
+            # prompt = f'{system}\n{user}\n{assistant}'
 
-            output = run_prompt(prompt, model, tokenizer)
+            prompt = f'<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant'
+            # output = run_prompt(prompt, model, tokenizer)
+            output = llm.generate(prompt, sampling_params)
             score = int(output[-1])
             sent_scores = [int(output[-1])]
         else:
@@ -155,15 +166,24 @@ if __name__ == '__main__':
 
             sent_scores = []
             for pred_sent in pred_sents:
-                context, _ = top_k(rouge, pred_sent, full_note_sents_flat)
-                system = '<|system|>\nThe information in the SUMMARY sentence can be traced back to the SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
-                user = f'<|user|>\nSOURCE: {context}\nSUMMARY: {pred_sent}</s>'
-                assistant = '<|assistant|>\nAGREEMENT SCORE: '
-                prompt = f'{system}\n{user}\n{assistant}'
+                context, _ = top_k(rouge, pred_sent, full_note_sents_flat, k=5)
+                # system = '<|system|>\nThe information in the SUMMARY can be traced back to the preceeding SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
+                system = 'The information in the SUMMARY can be traced back to the preceeding SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree'
+                user = f'SOURCE:\n{context}\nSUMMARY:\n{pred_sent}'
+                prompt = f'<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant\nINTEGER ANSWER: '
+                # output = run_prompt(prompt, model, tokenizer)
+                output = llm.generate(prompt, sampling_params)
+                score = int(output[0].outputs[0].text.strip()[0])
 
-                output = run_prompt(prompt, model, tokenizer)
+                # context, _ = top_k(rouge, pred_sent, full_note_sents_flat)
+                # system = '<|system|>\nThe information in the SUMMARY sentence can be traced back to the SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
+                # user = f'<|user|>\nSOURCE: {context}\nSUMMARY: {pred_sent}</s>'
+                # assistant = '<|assistant|>\nAGREEMENT SCORE: '
+                # prompt = f'{system}\n{user}\n{assistant}'
+                #
+                # output = run_prompt(prompt, model, tokenizer)
 
-                score = int(output[-1])
+                # score = int(output[-1])
                 sent_scores.append(score)
 
         avg_score = np.mean(sent_scores)
@@ -173,7 +193,7 @@ if __name__ == '__main__':
 
         outputs.append(out_row)
 
-        print('Avg Faithfulness: ', round(pd.DataFrame(outputs)['score'].mean(), 3))
+        print(f'Avg Faithfulness ({len(outputs)}: ', round(pd.DataFrame(outputs)['score'].mean(), 3))
 
     outputs = pd.DataFrame(outputs)
     print(f'Saving faithfulness scores to {out_fn}...')
