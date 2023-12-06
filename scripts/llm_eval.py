@@ -20,7 +20,7 @@ def run_prompt(prompt, model, tokenizer):
     model.eval()
     with torch.no_grad():
         generation_config = GenerationConfig(
-            max_new_tokens=1,
+            max_new_tokens=2,
             bos_token_id=tokenizer.bos_token_id,
             eos_token_id=tokenizer.eos_token_id,
             pad_token_id=tokenizer.pad_token_id,
@@ -35,7 +35,7 @@ def run_prompt(prompt, model, tokenizer):
         )
 
     output = tokenizer.decode(generated['sequences'].cpu().tolist()[0])
-    output = output.replace('<s>', '').replace('</s>', '')
+    output = output.replace('<s>', '').replace('</s>', '').strip()
     return output
 
 
