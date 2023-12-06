@@ -144,7 +144,7 @@ if __name__ == '__main__':
             context, _ = top_k(rouge, pred, full_note_sents_flat, k=100)
             system = '<|system|>\nThe information in the SUMMARY can be traced back to the preceeding SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
             user = f'<|user|>\nSOURCE:\n{context}\nSUMMARY:\n{pred}</s>'
-            assistant = '<|assistant|>\nSCORE: '
+            assistant = '<|assistant|>\nSCORE (1-5): '
             prompt = f'{system}\n{user}\n{assistant}'
 
             output = run_prompt(prompt, model, tokenizer)
