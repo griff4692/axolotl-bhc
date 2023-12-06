@@ -14,13 +14,13 @@ from nltk import sent_tokenize
 from evaluate import load
 
 
-def run_prompt(prompt, model, tokenizer):
+def run_prompt(prompt, model, tokenizer, max_new_tokens=2):
     batch = tokenizer(prompt, return_tensors='pt', add_special_tokens=True)
 
     model.eval()
     with torch.no_grad():
         generation_config = GenerationConfig(
-            max_new_tokens=2,
+            max_new_tokens=max_new_tokens,
             bos_token_id=tokenizer.bos_token_id,
             eos_token_id=tokenizer.eos_token_id,
             pad_token_id=tokenizer.pad_token_id,
