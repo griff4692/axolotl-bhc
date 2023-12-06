@@ -138,20 +138,30 @@ if __name__ == '__main__':
         ]
         full_note_sents_flat = list(itertools.chain(*full_note_sents))
 
-        pred_sents = sent_tokenize_or_parse(pred)
+        context, _ = top_k(rouge, pred, full_note_sents_flat, k=100)
+        system = '<|system|>\nThe information in the SUMMARY can be traced back to the preceeding SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
+        user = f'<|user|>\nSOURCE:\n{context}\nSUMMARY:\n{pred}</s>'
+        assistant = '<|assistant|>\nSCORE: '
+        prompt = f'{system}\n{user}\n{assistant}'
 
-        sent_scores = []
-        for pred_sent in pred_sents:
-            context, _ = top_k(rouge, pred_sent, full_note_sents_flat)
-            system = '<|system|>\nThe information in the SUMMARY sentence can be traced back to the SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
-            user = f'<|user|>\nSOURCE: {context}\nSUMMARY: {pred_sent}</s>'
-            assistant = '<|assistant|>\nSCORE: '
-            prompt = f'{system}\n{user}\n{assistant}'
+        output = run_prompt(prompt, model, tokenizer)
+        score = int(output[-1])
+        sent_scores = [int(output[-1])]
 
-            output = run_prompt(prompt, model, tokenizer)
-
-            score = int(output[-1])
-            sent_scores.append(score)
+        # pred_sents = sent_tokenize_or_parse(pred)
+        #
+        # sent_scores = []
+        # for pred_sent in pred_sents:
+        #     context, _ = top_k(rouge, pred_sent, full_note_sents_flat)
+        #     system = '<|system|>\nThe information in the SUMMARY sentence can be traced back to the SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
+        #     user = f'<|user|>\nSOURCE: {context}\nSUMMARY: {pred_sent}</s>'
+        #     assistant = '<|assistant|>\nSCORE: '
+        #     prompt = f'{system}\n{user}\n{assistant}'
+        #
+        #     output = run_prompt(prompt, model, tokenizer)
+        #
+        #     score = int(output[-1])
+        #     sent_scores.append(score)
 
         avg_score = np.mean(sent_scores)
         sent_str = ','.join(map(str, sent_scores))
