@@ -127,7 +127,7 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
 
     # Entity Stuff
     ent_info = load_ent_info(args, example_id, span2embed)
-    guidance, ents_in_guidance, pred_source_clusters = get_entity_guidance(
+    ents_in_guidance, pred_source_clusters = get_entity_guidance(
         example_id, all_ent_probs, ent_info['source_ent_clusters'], ent_info['source_ent_types'],
         pred_ent_threshold=args.pred_ent_threshold
     )
