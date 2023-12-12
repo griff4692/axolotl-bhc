@@ -1,5 +1,5 @@
-base_model: HuggingFaceH4/zephyr-7b-beta
-base_model_config: HuggingFaceH4/zephyr-7b-beta
+base_model: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline
+base_model_config: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline
 model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
 is_mistral_derived_model: true
@@ -23,10 +23,10 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: zephyr_focus
+wandb_run_id: zephyr_focus_4k
 wandb_log_model:
 
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 8
 micro_batch_size: 1
 num_epochs: 1
 optimizer: adamw_bnb_8bit

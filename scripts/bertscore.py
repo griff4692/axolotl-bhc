@@ -7,7 +7,7 @@ from datasets import load_from_disk
 from collections import Counter
 from transformers import AutoTokenizer, AutoModel
 import argparse
-import itertools
+from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 from sent_inference_utils import transform_text_for_llama
 from nltk import sent_tokenize
@@ -84,7 +84,9 @@ if __name__ == '__main__':
     tokenizer = AutoTokenizer.from_pretrained(hf)
     model = AutoModel.from_pretrained(hf).to(args.device).eval()
 
-    args.cached_fn = os.path.join('/nlp/projects/summarization/bhc_data_cleanup/mistral_weights', args.cached_suffix)
+    args.cached_fn = os.path.join(
+        '/nlp/projects/summarization/bhc_data_cleanup/mistral_weights', args.cached_suffix
+    )
     print(f'Loading predictions from from {args.cached_fn}.csv')
 
     df = pd.read_csv(args.cached_fn + '.csv')
@@ -99,7 +101,7 @@ if __name__ == '__main__':
     full_fn = out_dir + '.csv'
     print(f'Saving metrics to {out_dir}')
 
-    print('Reading in dataset...')
+    print('Reading in dataset.i..')
     visit_meta = {}
     data_dir = f'/nlp/projects/summarization/bhc_data_cleanup/mistral_inference/{args.dataset}_8192'
     print(f'Reading in data from {data_dir}')
@@ -146,26 +148,45 @@ if __name__ == '__main__':
 
             clean_pred = '\n'.join(remove_repetitive_sents(sent_tokenize_or_parse(pred)))
 
-            bs = None
-            out_row['bertscore'] = bs
-
             batch = tokenizer(
-                [source, clean_pred], padding='longest', truncate=True, pad_to_multiple_of=1024, max_length=16384, return_tensors='pt'
+                [source, clean_pred], padding='max_length', truncation=True, pad_to_multiple_of=1024, max_length=16384,
+                return_tensors='pt'
             )
+
+            global_attention_mask = torch.zeros_like(batch['attention_mask'])
+            # put global attention on <s> token
+            global_attention_mask[:, 0] = 1
+
+            # since above lists are references, the following line changes the 0 index for all samples
+            batch['global_attention_mask'] = global_attention_mask
 
             batch = {
                 k: v.to(model.device) for k, v in batch.items()
             }
 
+            seq_lens = batch['attention_mask'].sum(dim=1)
             with torch.no_grad():
-                encodings = model(**batch)
+                encodings = model.encoder(**batch).last_hidden_state
+                src_h, pred_h = encodings[0, :seq_lens[0], :], encodings[1, :seq_lens[1], :]
+
+                sim_mat = cosine_similarity(pred_h.cpu(), src_h.cpu())
+
+                p = float(sim_mat.max(axis=1).mean())
+                r = float(sim_mat.max(axis=0).mean())
+                f1 = (2 * p * r) / (p + r)
+
+                out_row['bs_precision'] = p
+                out_row['bs_recall'] = r
+                out_row['bs_f1'] = f1
 
             print(f'Saving to {ex_fn}...')
             with open(ex_fn, 'w') as fd:
                 ujson.dump(out_row, fd)
 
         outputs.append(out_row)
-        print(f'Avg BERTScore ({len(outputs)}): ', round(pd.DataFrame(outputs)['score'].mean(), 3))
+        print(f'Avg BERTScore Precision ({len(outputs)}): ', round(pd.DataFrame(outputs)['bs_precision'].mean(), 3))
+        print(f'Avg BERTScore Recall ({len(outputs)}): ', round(pd.DataFrame(outputs)['bs_recall'].mean(), 3))
+        print(f'Avg BERTScore F1 ({len(outputs)}): ', round(pd.DataFrame(outputs)['bs_f1'].mean(), 3))
 
     outputs = pd.DataFrame(outputs)
     print(f'Saving faithfulness scores to {full_fn}...')
