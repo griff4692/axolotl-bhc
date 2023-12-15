@@ -6,7 +6,7 @@ import torch
 from datasets import load_from_disk
 from vllm import LLM, SamplingParams
 from collections import Counter
-from transformers import AutoTokenizer, AutoModelForCausalLM, MistralForCausalLM, GenerationConfig
+from transformers import GenerationConfig
 # Load model directly
 import argparse
 import itertools
