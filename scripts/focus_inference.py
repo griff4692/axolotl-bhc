@@ -350,6 +350,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if args.dataset == 'epic':
+        assert args.pred_ent_threshold == 0.81
+    elif args.dataset == 'cumc':
+        assert args.pred_ent_threshold == 0.76
+    else:
+        assert args.pred_ent_threshold == 0.62
+
     args.base_model = os.path.join(args.data_dir, f'{args.pretrained_model}_weights', args.experiment)
     config = Path(os.path.expanduser(f'~/axolotl-bhc/{args.pretrained_model}_{args.config}.yml'))
 

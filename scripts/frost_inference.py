@@ -138,7 +138,11 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
 
     guidance = f'### ENTITIES\nPROBLEMS: {problems}\nTREATMENTS: {treatments}\nTESTS: {tests}'
 
-    prompt = f'[INST]\n{instruction}\n\n{source_input}\n\n{guidance}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
+    start = '### BRIEF HOSPITAL COURSE:'
+    if args.pretrained_model == 'mistral':
+        prompt = f'[INST]\n{instruction}\n\n{source_input}\n\n{guidance}\n[/INST]\n{start}\n'
+    else:
+        prompt = f'<|system|>\n{instruction}</s>\n<|user|>\n{source_input}\n\n{guidance}</s>\n<|assistant|>\n{start}\n'
 
     prediction = run_prompt(cfg, model, tokenizer, prompt)
     prediction = '\n'.join(remove_duplicates_preserve_order(prediction.split('\n')))
@@ -270,14 +274,21 @@ if __name__ == '__main__':
     parser.add_argument('--pred_ent_threshold', default=0.81, type=float)
 
     # Mistral Arguments
-    parser.add_argument(
-        '--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_instruct'
-    )
+    parser.add_argument('--pretrained_model', default='zephyr')
+    parser.add_argument('--experiment', default='frost')
     parser.add_argument('--ckpt', default=4000)
 
     args = parser.parse_args()
 
-    config = Path(os.path.expanduser(f'~/axolotl-bhc/mistral_{args.config}.yml'))
+    if args.dataset == 'epic':
+        assert args.pred_ent_threshold == 0.81
+    elif args.dataset == 'cumc':
+        assert args.pred_ent_threshold == 0.76
+    else:
+        assert args.pred_ent_threshold == 0.62
+
+    args.base_model = os.path.join(args.data_dir, f'{args.pretrained_model}_weights', args.experiment)
+    config = Path(os.path.expanduser(f'~/axolotl-bhc/{args.pretrained_model}_{args.config}.yml'))
 
     kwargs = {}
     # pylint: disable=duplicate-code
