@@ -26,7 +26,7 @@ wandb_watch:
 wandb_run_id: mistral_frost_esg
 wandb_log_model:
 
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 8
 micro_batch_size: 1
 num_epochs: 1
 optimizer: adamw_bnb_8bit
