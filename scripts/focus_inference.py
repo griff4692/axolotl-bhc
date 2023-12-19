@@ -179,8 +179,9 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
     # - repeated entities
     # - no sentence generated
 
+    should_break = False
     is_malformed = True
-    while is_malformed:
+    while is_malformed and not should_break:
         is_malformed = False
         valid_lines = []
         for line in full_output.split('\n'):
@@ -192,11 +193,19 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
                     print('Re-prompting with unique mentions only')
                     uniq_ents = remove_duplicates_preserve_order(ents)
                     uniq_ent_str = '; '.join(['{{ ' + ent + ' }}' for ent in uniq_ents])
-                    sent_num = re.search(r'### ENTITIES (\d+):', line).group(1)
-                    valid_lines.append(f'### ENTITIES {sent_num}: {uniq_ent_str}')
-                    partial_prompt = '\n'.join(valid_lines).strip() + '\n' + f'### SENTENCE {sent_num}: '
-                    output, full_output = run_prompt(cfg, model, tokenizer, partial_prompt)
-                    break
+
+                    sent_num_match = re.search(r'### ENTITIES (\d+):', line)
+                    if sent_num_match is None:
+                        print(f'Sentence number is not in the output -> {line}. Ending generation entirely.')
+                        output = '\n'.join(valid_lines)
+                        should_break = True
+                        break
+                    else:
+                        sent_num = sent_num_match.group(1)
+                        valid_lines.append(f'### ENTITIES {sent_num}: {uniq_ent_str}')
+                        partial_prompt = '\n'.join(valid_lines).strip() + '\n' + f'### SENTENCE {sent_num}: '
+                        output, full_output = run_prompt(cfg, model, tokenizer, partial_prompt)
+                        break
                 else:
                     valid_lines.append(line)
             else:
