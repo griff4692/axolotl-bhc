@@ -1,5 +1,5 @@
-base_model: HuggingFaceH4/zephyr-7b-beta
-base_model_config: HuggingFaceH4/zephyr-7b-beta
+base_model: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline
+base_model_config: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline
 model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
 is_mistral_derived_model: true
@@ -14,7 +14,7 @@ datasets:
 
 dataset_prepared_path:
 val_set_size: 0.005
-output_dir: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline
+output_dir: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline_ctd
 
 sequence_len: 8192
 sample_packing: false
@@ -23,10 +23,10 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: zephyr_baseline
+wandb_run_id: zephyr_baseline_ctd
 wandb_log_model:
 
-gradient_accumulation_steps: 8
+gradient_accumulation_steps: 4
 micro_batch_size: 1
 num_epochs: 1
 optimizer: adamw_bnb_8bit
@@ -51,6 +51,7 @@ warmup_steps: 10
 eval_steps: 500
 eval_table_size:
 eval_table_max_new_tokens: 128
+save_total_limit: 10
 save_steps: 500
 save_strategy: steps
 debug:
