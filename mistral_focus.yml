@@ -9,7 +9,7 @@ load_in_4bit: false
 strict: false
 
 datasets:
-  - path: /nlp/projects/summarization/bhc_data_cleanup/prompt_focus_instruct.jsonl
+  - path: /nlp/projects/summarization/bhc_data_cleanup/prompt_focus.jsonl
     type: summarizetldr
 
 dataset_prepared_path:
