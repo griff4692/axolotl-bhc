@@ -3,9 +3,9 @@ import os
 
 
 if __name__ == '__main__':
-    exp = 'baseline_ctd'
-    ckpt = '2500'
-    pretrained = 'zephyr'
+    exp = 'focus'
+    ckpt = '2000'
+    pretrained = 'mistral'
     dataset = 'epic'
 
     in_dir = os.path.join('/nlp/projects/summarization/bhc_data_cleanup', f'{pretrained}_weights', exp)

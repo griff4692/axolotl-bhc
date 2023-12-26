@@ -1,5 +1,5 @@
-base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_esg/checkpoint-2500
-base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_esg/checkpoint-2500
+base_model: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline
+base_model_config: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline
 model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
 is_mistral_derived_model: true
@@ -9,12 +9,12 @@ load_in_4bit: false
 strict: false
 
 datasets:
-  - path: /nlp/projects/summarization/bhc_data_cleanup/prompt_frost_esg.jsonl
+  - path: /nlp/projects/summarization/bhc_data_cleanup/zephyr_focus_ablation.jsonl
     type: summarizetldr
 
 dataset_prepared_path:
 val_set_size: 0.005
-output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_esg
+output_dir: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/focus_ablation
 
 sequence_len: 8192
 sample_packing: false
@@ -23,10 +23,10 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: mistral_frost_esg_redone
+wandb_run_id: zephyr_focus_ablation
 wandb_log_model:
 
-gradient_accumulation_steps: 8
+gradient_accumulation_steps: 4
 micro_batch_size: 1
 num_epochs: 1
 optimizer: adamw_bnb_8bit
@@ -49,11 +49,11 @@ flash_attention: true
 
 warmup_steps: 10
 eval_steps: 500
+save_total_limit: 10
 eval_table_size:
 eval_table_max_new_tokens: 128
 save_steps: 500
 save_strategy: steps
-save_total_limit: 10
 debug:
 deepspeed: /home/ga2530/axolotl-bhc/deepspeed/zero2.json
 weight_decay: 0.0
