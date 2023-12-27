@@ -23,7 +23,7 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: mistral_frost_esg_redone
+wandb_run_id: mistral_frost_esg_redone_actual
 wandb_log_model:
 
 gradient_accumulation_steps: 8
@@ -41,7 +41,7 @@ tf32: false
 
 gradient_checkpointing: true
 early_stopping_patience:
-resume_from_checkpoint:
+resume_from_checkpoint: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_esg/checkpoint-2500
 local_rank:
 logging_steps: 1
 xformers_attention:
