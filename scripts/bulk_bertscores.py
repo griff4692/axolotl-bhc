@@ -197,6 +197,6 @@ if __name__ == '__main__':
 
             outputs = pd.DataFrame(outputs)
             print(f'Saving faithfulness scores to {full_fn}...')
-            print('Final Avg BERTScore: -> ', round(outputs['bertscore'].mean(), 3))
+            print('Final Avg BERTScore: -> ', round(outputs['bs_precision'].mean(), 3))
             outputs.to_csv(full_fn, index=False)
 
