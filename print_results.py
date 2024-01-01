@@ -3,10 +3,10 @@ import os
 
 
 if __name__ == '__main__':
-    exp = 'focus'
-    ckpt = '2000'
-    pretrained = 'mistral'
-    dataset = 'epic'
+    exp = 'baseline_ctd'
+    ckpt = '2500'
+    pretrained = 'zephyr'
+    dataset = 'mimic'
 
     in_dir = os.path.join('/nlp/projects/summarization/bhc_data_cleanup', f'{pretrained}_weights', exp)
     fn = os.path.join(in_dir, f'{dataset}_{ckpt}_w_metrics.csv')
