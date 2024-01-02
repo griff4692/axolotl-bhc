@@ -97,6 +97,16 @@ if __name__ == '__main__':
             print(f'Loading predictions from {cached_fn_ext}')
 
             df = pd.read_csv(cached_fn + '.csv')
+
+            prev_n = len(df)
+            df.dropna(subset='prediction', inplace=True)
+            new_n = len(df)
+            null = prev_n - new_n
+            if null > 0:
+                print('WARNING!')
+                print(f'{null} rows have no predictions!')
+                print('WARNING!')
+
             records = df.to_dict('records')
             if args.max_examples < len(df):
                 records = records[:args.max_examples]

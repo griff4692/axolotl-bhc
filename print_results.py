@@ -3,7 +3,7 @@ import os
 
 
 if __name__ == '__main__':
-    exp = 'baseline_ctd'
+    exp = 'focus'
     ckpt = '2500'
     pretrained = 'zephyr'
     dataset = 'mimic'
