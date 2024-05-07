@@ -1,5 +1,5 @@
-base_model: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline
-base_model_config: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline
+base_model_config: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_esg/checkpoint-2500
+base_model: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_esg/checkpoint-2500
 model_type: MistralForCausalLM
 tokenizer_type: LlamaTokenizer
 is_mistral_derived_model: true
@@ -9,12 +9,12 @@ load_in_4bit: false
 strict: false
 
 datasets:
-  - path: /nlp/projects/summarization/bhc_data_cleanup/zephyr_baseline.jsonl
+  - path: /nlp/projects/summarization/bhc_data_cleanup/prompt_frost_esg.jsonl
     type: summarizetldr
 
 dataset_prepared_path:
 val_set_size: 0.005
-output_dir: /nlp/projects/summarization/bhc_data_cleanup/zephyr_weights/baseline_ctd
+output_dir: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_esg
 
 sequence_len: 8192
 sample_packing: false
@@ -23,7 +23,7 @@ pad_to_sequence_len: true
 wandb_project: mistral
 wandb_entity: griffinadams
 wandb_watch:
-wandb_run_id: zephyr_baseline_ctd
+wandb_run_id: mistral_frost_esg_redone_actual
 wandb_log_model:
 
 gradient_accumulation_steps: 4
@@ -41,7 +41,7 @@ tf32: false
 
 gradient_checkpointing: true
 early_stopping_patience:
-resume_from_checkpoint:
+resume_from_checkpoint: /nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_esg/checkpoint-2500
 local_rank:
 logging_steps: 1
 xformers_attention:
@@ -51,9 +51,9 @@ warmup_steps: 10
 eval_steps: 500
 eval_table_size:
 eval_table_max_new_tokens: 128
-save_total_limit: 10
 save_steps: 500
 save_strategy: steps
+save_total_limit: 10
 debug:
 deepspeed: /home/ga2530/axolotl-bhc/deepspeed/zero2.json
 weight_decay: 0.0

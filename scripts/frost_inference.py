@@ -127,18 +127,28 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
 
     # Entity Stuff
     ent_info = load_ent_info(args, example_id, span2embed)
-    guidance, ents_in_guidance, pred_source_clusters = get_entity_guidance(
+    ents_in_guidance, pred_source_clusters = get_entity_guidance(
         example_id, all_ent_probs, ent_info['source_ent_clusters'], ent_info['source_ent_types'],
         pred_ent_threshold=args.pred_ent_threshold
     )
 
-    problems = '; '.join([x[0] for x in ents_in_guidance['problems']])
-    treatments = '; '.join([x[0] for x in ents_in_guidance['treatments']])
-    tests = '; '.join([x[0] for x in ents_in_guidance['tests']])
+    if args.frost_esg:
+        problems = '\n'.join(['; '.join(x) for x in ents_in_guidance['problems']])
+        treatments = '\n'.join(['; '.join(x) for x in ents_in_guidance['treatments']])
+        tests = '\n'.join(['; '.join(x) for x in ents_in_guidance['tests']])
+        guidance = f'### ENTITIES\nPROBLEMS:\n{problems}\nTREATMENTS:\n{treatments}\nTESTS:\n{tests}'
+    else:
+        problems = '; '.join([x[0] for x in ents_in_guidance['problems']])
+        treatments = '; '.join([x[0] for x in ents_in_guidance['treatments']])
+        tests = '; '.join([x[0] for x in ents_in_guidance['tests']])
 
-    guidance = f'### ENTITIES\nPROBLEMS: {problems}\nTREATMENTS: {treatments}\nTESTS: {tests}'
+        guidance = f'### ENTITIES\nPROBLEMS: {problems}\nTREATMENTS: {treatments}\nTESTS: {tests}'
 
-    prompt = f'[INST]\n{instruction}\n\n{source_input}\n\n{guidance}\n[/INST]\n### BRIEF HOSPITAL COURSE:\n'
+    start = '### BRIEF HOSPITAL COURSE:'
+    if args.pretrained_model == 'mistral':
+        prompt = f'[INST]\n{instruction}\n\n{source_input}\n\n{guidance}\n[/INST]\n{start}\n'
+    else:
+        prompt = f'<|system|>\n{instruction}</s>\n<|user|>\n{source_input}\n\n{guidance}</s>\n<|assistant|>\n{start}\n'
 
     prediction = run_prompt(cfg, model, tokenizer, prompt)
     prediction = '\n'.join(remove_duplicates_preserve_order(prediction.split('\n')))
@@ -179,7 +189,7 @@ def frost_inference(
         if not (cfg.special_tokens and token in cfg.special_tokens):
             tokenizer.add_special_tokens({token: symbol})
 
-    out_dir = os.path.join(cfg.output_dir, f'{args.dataset}_{args.ckpt}')
+    out_dir = os.path.join(args.base_model, f'{args.dataset}_{args.ckpt}')
     out_fn = f'{out_dir}.csv'
     os.makedirs(out_dir, exist_ok=True)
 
@@ -270,14 +280,26 @@ if __name__ == '__main__':
     parser.add_argument('--pred_ent_threshold', default=0.81, type=float)
 
     # Mistral Arguments
-    parser.add_argument(
-        '--base_model', default='/nlp/projects/summarization/bhc_data_cleanup/mistral_weights/frost_instruct'
-    )
+    parser.add_argument('--pretrained_model', default='zephyr')
+    parser.add_argument('--experiment', default='frost')
     parser.add_argument('--ckpt', default=4000)
+    parser.add_argument('-frost_esg', default=False, action='store_true')
 
     args = parser.parse_args()
 
-    config = Path(os.path.expanduser(f'~/axolotl-bhc/mistral_{args.config}.yml'))
+    if 'esg' in args.experiment:
+        assert args.frost_esg
+        assert 'esg' in args.config
+
+    if args.dataset == 'epic':
+        assert args.pred_ent_threshold == 0.81
+    elif args.dataset == 'cumc':
+        assert args.pred_ent_threshold == 0.76
+    else:
+        assert args.pred_ent_threshold == 0.62
+
+    args.base_model = os.path.join(args.data_dir, f'{args.pretrained_model}_weights', args.experiment)
+    config = Path(os.path.expanduser(f'~/axolotl-bhc/{args.pretrained_model}_{args.config}.yml'))
 
     kwargs = {}
     # pylint: disable=duplicate-code
@@ -286,6 +308,7 @@ if __name__ == '__main__':
     parsed_cfg = load_cfg(config, **kwargs)
     parsed_cfg.sample_packing = False
     parsed_cfg.base_model = os.path.join(args.base_model, f'checkpoint-{args.ckpt}')
+    print(f'Loading model from {parsed_cfg.base_model}')
     assert os.path.exists(parsed_cfg.base_model)
     parsed_cfg.base_model_config = args.base_model
     parser = transformers.HfArgumentParser((TrainerCliArgs))

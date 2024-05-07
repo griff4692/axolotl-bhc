@@ -4,7 +4,9 @@ import os
 import numpy as np
 import torch
 from datasets import load_from_disk
-from transformers import AutoTokenizer, AutoModelForCausalLM, MistralForCausalLM, GenerationConfig
+from vllm import LLM, SamplingParams
+from collections import Counter
+from transformers import GenerationConfig
 # Load model directly
 import argparse
 import itertools
@@ -12,6 +14,36 @@ import pandas as pd
 from sent_inference_utils import transform_text_for_llama
 from nltk import sent_tokenize
 from evaluate import load
+import ujson
+
+
+SYSTEM = 'The information in the SUMMARY can be traced back to the preceeding SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree'
+
+
+def remove_repetitive_sents(pred_sents):
+    # Removing repetitive sentences
+    pred_sents_tok_cts = [Counter([z.strip() for z in re.split(r'\W+', x) if len(z.strip()) > 0]) for x in pred_sents]
+    pred_sents_filt = pred_sents[:1]
+    for i in range(1, len(pred_sents)):
+        if pred_sents[i].startswith('### SENTENCE') and not pred_sents[i].endswith('.'):
+            print(f'Malformed Sentence: {pred_sents[i]}. Removing.')
+            continue
+        overlap = 0
+        total = 0
+        for k, v in pred_sents_tok_cts[i].items():
+            total += v
+            if k in pred_sents_tok_cts[i - 1]:
+                overlap += min(v, pred_sents_tok_cts[i - 1][k])
+        if total == 0:
+            print(f'No tokens in sentence: {pred_sents[i]}')
+            continue
+        frac = overlap / total
+        if overlap < 3 or frac <= 0.5:
+            pred_sents_filt.append(pred_sents[i])
+        else:
+            print('Skipping: ', pred_sents[i])
+            print('Because of: ', pred_sents[i - 1])
+    return pred_sents_filt
 
 
 def run_prompt(prompt, model, tokenizer, max_new_tokens=2):
@@ -78,13 +110,19 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    tokenizer = AutoTokenizer.from_pretrained('HuggingFaceH4/zephyr-7b-beta')
-    model = AutoModelForCausalLM.from_pretrained(
-        'HuggingFaceH4/zephyr-7b-beta',
-        torch_dtype=torch.bfloat16,
-        use_flash_attention_2=True,
-    ).to(args.device)
-    model.eval()
+    # tokenizer = AutoTokenizer.from_pretrained('TheBloke/Yi-34B-Chat-AWQ')
+    # model = AutoModelForCausalLM.from_pretrained(
+    #     # 'HuggingFaceH4/zephyr-7b-beta',
+    #     'TheBloke/Yi-34B-Chat-AWQ',
+    #     # torch_dtype=torch.bfloat16,
+    #     low_cpu_mem_usage = True,
+    #     use_flash_attention_2=True,
+    #     device_map=f'cuda:{args.device}'
+    # )
+    # model.eval()
+
+    sampling_params = SamplingParams(temperature=0.0, max_tokens=2)
+    llm = LLM(model='TheBloke/Yi-34B-Chat-AWQ', quantization='awq', dtype='auto', gpu_memory_utilization=0.95)
 
     rouge = load('rouge', keep_in_memory=True)
 
@@ -99,8 +137,10 @@ if __name__ == '__main__':
     exid2preds = {row['example_id']: row['prediction'] for row in records}
 
     granularity = 'summary' if args.summary_level else 'sent'
-    out_fn = args.cached_fn + f'_w_{granularity}_faith.csv'
-    print(f'Saving metrics to {out_fn}')
+    out_dir = args.cached_fn + f'_w_{granularity}_faith'
+    os.makedirs(out_dir, exist_ok=True)
+    full_fn = out_dir + '.csv'
+    print(f'Saving metrics to {out_dir}')
 
     print('Reading in dataset...')
     visit_meta = {}
@@ -125,57 +165,79 @@ if __name__ == '__main__':
 
     outputs = []
     for exid, pred in exid2preds.items():
-        out_row = {'example_id': exid}
-        source = exid2source[exid]
-        assert '<doc-sep>' not in source
-        full_source = transform_text_for_llama(
-            source, include_header=True, include_title=True, include_sent_markers=False,
-            sent_new_line=True
-        )
-
-        full_notes = full_source.split('<doc-sep>')
-        full_notes = [x.strip() for x in full_notes if len(x.strip()) > 0 and '\n' in x.strip()]
-        full_note_sents = [
-            [z.strip() for z in x.split('\n') if len(z.strip()) > 0] for x in full_notes
-        ]
-        full_note_sents_flat = list(itertools.chain(*full_note_sents))
-
-        if args.summary_level:
-            context, _ = top_k(rouge, pred, full_note_sents_flat, k=100)
-            system = '<|system|>\nThe information in the SUMMARY can be traced back to the preceeding SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
-            user = f'<|user|>\nSOURCE:\n{context}\nSUMMARY:\n{pred}</s>'
-            assistant = '<|assistant|>\nSCORE (1-5): '
-            prompt = f'{system}\n{user}\n{assistant}'
-
-            output = run_prompt(prompt, model, tokenizer)
-            score = int(output[-1])
-            sent_scores = [int(output[-1])]
+        ex_fn = os.path.join(out_dir, f'{exid}.json')
+        if os.path.exists(ex_fn) and not args.overwrite:
+            print(f'Loading from {ex_fn}...')
+            with open(ex_fn, 'r') as fd:
+                out_row = ujson.load(fd)
         else:
+            out_row = {'example_id': exid}
+            source = exid2source[exid]
+            assert '<doc-sep>' not in source
+            full_source = transform_text_for_llama(
+                source, include_header=True, include_title=True, include_sent_markers=False,
+                sent_new_line=True
+            )
+
+            full_notes = full_source.split('<doc-sep>')
+            full_notes = [x.strip() for x in full_notes if len(x.strip()) > 0 and '\n' in x.strip()]
+            full_note_sents = [
+                [z.strip() for z in x.split('\n') if len(z.strip()) > 0] for x in full_notes
+            ]
+            full_note_sents_flat = list(itertools.chain(*full_note_sents))
+
+            # if args.summary_level:
+            #     context, _ = top_k(rouge, pred, full_note_sents_flat, k=5)
+            #     system = 'The information in the SUMMARY can be traced back to the preceeding SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree'
+            #     user = f'SOURCE:\n{context}\nSUMMARY:\n{pred}'
+            #     prompt = f'<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant'
+            #
+            #     try:
+            #         output = llm.generate(prompt, sampling_params)
+            #     except Exception as e:
+            #         print(e)
+            #         print('Could not run generate on model. Trying with fewer sentences...')
+            #         context, _ = top_k(rouge, pred, full_note_sents_flat, k=1)
+            #         user = f'SOURCE:\n{context}\nSUMMARY:\n{pred}'
+            #         prompt = f'<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant'
+            #     score = int(output[-1])
+            #     sent_scores = [int(output[-1])]
+            # else:
             pred_sents = sent_tokenize_or_parse(pred)
+            pred_sents = remove_repetitive_sents(pred_sents)
 
             sent_scores = []
             for pred_sent in pred_sents:
-                context, _ = top_k(rouge, pred_sent, full_note_sents_flat)
-                system = '<|system|>\nThe information in the SUMMARY sentence can be traced back to the SOURCE.\nDo you agree with this statement?\nAnswer with a single number from 1 (Strongly Disagree) to 5 (Strongly Agree).\n1 - Strongly Disagree\n2 - Disagree\n3 - Neutral\n4 - Agree\n5 - Strongly Agree</s>'
-                user = f'<|user|>\nSOURCE: {context}\nSUMMARY: {pred_sent}</s>'
-                assistant = '<|assistant|>\nAGREEMENT SCORE: '
-                prompt = f'{system}\n{user}\n{assistant}'
-
-                output = run_prompt(prompt, model, tokenizer)
-
-                score = int(output[-1])
+                context, _ = top_k(rouge, pred_sent, full_note_sents_flat, k=5)
+                user = f'SOURCE:\n{context}\nSUMMARY:\n{pred_sent}'
+                prompt = f'<|im_start|>system\n{SYSTEM}<|im_end|>\n<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant\nINTEGER ANSWER: '
+                try:
+                    output = llm.generate(prompt, sampling_params, use_tqdm=False)
+                    score = int(output[0].outputs[0].text.strip()[0])
+                except Exception as e:
+                    print(e)
+                    print(f'Could not process. Error is above. Trying with 1-sentence context...')
+                    short_context, _ = top_k(rouge, pred_sent, full_note_sents_flat, k=1)
+                    short_user = f'SOURCE:\n{short_context}\nSUMMARY:\n{pred_sent}'
+                    short_prompt = f'<|im_start|>system\n{SYSTEM}<|im_end|>\n<|im_start|>user\n{short_user}<|im_end|>\n<|im_start|>assistant\nINTEGER ANSWER: '
+                    output = llm.generate(short_prompt, sampling_params, use_tqdm=False)
+                    score = int(output[0].outputs[0].text.strip()[0])
                 sent_scores.append(score)
 
-        avg_score = np.mean(sent_scores)
-        sent_str = ','.join(map(str, sent_scores))
-        out_row['sent_scores'] = sent_str
-        out_row['score'] = avg_score
+            avg_score = np.mean(sent_scores)
+            sent_str = ','.join(map(str, sent_scores))
+            out_row['sent_scores'] = sent_str
+            out_row['score'] = avg_score
+
+            print(f'Saving to {ex_fn}...')
+            with open(ex_fn, 'w') as fd:
+                ujson.dump(out_row, fd)
 
         outputs.append(out_row)
-
-        print('Avg Faithfulness: ', round(pd.DataFrame(outputs)['score'].mean(), 3))
+        print(f'Avg Faithfulness ({len(outputs)}): ', round(pd.DataFrame(outputs)['score'].mean(), 3))
 
     outputs = pd.DataFrame(outputs)
-    print(f'Saving faithfulness scores to {out_fn}...')
+    print(f'Saving faithfulness scores to {full_fn}...')
     print('Final Avg Faithfulness: -> ', round(outputs['score'].mean(), 3))
-    outputs.to_csv(out_fn, index=False)
+    outputs.to_csv(full_fn, index=False)
+

@@ -323,7 +323,7 @@ def transform_text_for_llama(
 
 
 def get_entity_guidance(
-        example_id, all_ent_probs, source_ent_clusters, source_ent_types, max_csize=15,
+        example_id, all_ent_probs, source_ent_clusters, source_ent_types,
         pred_ent_threshold=_DEFAULT_PRED_ENT_THRESHOLD, min_ents=3, max_ents=100
 ):
     # priority = np.argsort(-np.array(ent_probs))
@@ -343,11 +343,7 @@ def get_entity_guidance(
         'tests': target_tests,
     }
 
-    problems = '\n'.join(['; '.join(z[:min(len(z), max_csize)]) for z in target_problems])
-    treatments = '\n'.join(['; '.join(z[:min(len(z), max_csize)]) for z in target_treatments])
-    tests = '\n'.join(['; '.join(z[:min(len(z), max_csize)]) for z in target_tests])
-    guidance = f'# PROBLEMS:\n{problems}\n\n# TREATMENTS:\n{treatments}\n\n# TESTS:\n{tests}'
-    return guidance, ents, pred_source_clusters
+    return ents, pred_source_clusters
 
 
 def load_ent_embeds():

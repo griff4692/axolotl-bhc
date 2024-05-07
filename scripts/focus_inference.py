@@ -142,7 +142,7 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
 
     # Entity Stuff
     ent_info = load_ent_info(args, example_id, span2embed)
-    guidance, ents_in_guidance, pred_source_clusters = get_entity_guidance(
+    ents_in_guidance, pred_source_clusters = get_entity_guidance(
         example_id, all_ent_probs, ent_info['source_ent_clusters'], ent_info['source_ent_types'],
         pred_ent_threshold=args.pred_ent_threshold
     )
@@ -167,50 +167,64 @@ def run_example(args, cfg, example, out_dir, all_ent_probs, span2embed, model, t
     if args.pretrained_model == 'mistral':
         prompt = f'[INST]\n{instruction}\n\n{source_transform}\n[/INST]\n{start}\n'
     else:
+        assert args.pretrained_model == 'zephyr'
         prompt = f'<|system|>\n{instruction}</s>\n<|user|>\n{source_transform}</s>\n<|assistant|>\n{start}\n'
 
     output, full_output = run_prompt(cfg, model, tokenizer, prompt)
 
-    plan_sents = []
-    summary_sents = []
+    if 'ablation' in args.experiment:
+        summary_sents = [x.strip() for x in output.split('\n') if len(x.strip()) > 0]
+        plan_sents = []
+    else:
+        plan_sents = []
+        summary_sents = []
 
-    # IFF the output is malformed re-prompt.
-    # - repeated entities
-    # - no sentence generated
+        # IFF the output is malformed re-prompt.
+        # - repeated entities
+        # - no sentence generated
 
-    is_malformed = True
-    while is_malformed:
-        is_malformed = False
-        valid_lines = []
-        for line in full_output.split('\n'):
-            if line.startswith('### ENTITIES'):
-                ents = re.findall(r'{{ ([^}]+) }}', line)
-                counter = Counter(ents).most_common()
-                if len(counter) > 0 and counter[0][1] >= 3:
-                    is_malformed = True
-                    print('Re-prompting with unique mentions only')
-                    uniq_ents = remove_duplicates_preserve_order(ents)
-                    uniq_ent_str = '; '.join(['{{ ' + ent + ' }}' for ent in uniq_ents])
-                    sent_num = re.search(r'### ENTITIES (\d+):', line).group(1)
-                    valid_lines.append(f'### ENTITIES {sent_num}: {uniq_ent_str}')
-                    partial_prompt = '\n'.join(valid_lines).strip() + '\n' + f'### SENTENCE {sent_num}: '
-                    output, full_output = run_prompt(cfg, model, tokenizer, partial_prompt)
-                    break
+        should_break = False
+        is_malformed = True
+        while is_malformed and not should_break:
+            is_malformed = False
+            valid_lines = []
+            for line in full_output.split('\n'):
+                if line.startswith('### ENTITIES'):
+                    ents = re.findall(r'{{ ([^}]+) }}', line)
+                    counter = Counter(ents).most_common()
+                    if len(counter) > 0 and counter[0][1] >= 3:
+                        is_malformed = True
+                        print('Re-prompting with unique mentions only')
+                        uniq_ents = remove_duplicates_preserve_order(ents)
+                        uniq_ent_str = '; '.join(['{{ ' + ent + ' }}' for ent in uniq_ents])
+
+                        sent_num_match = re.search(r'### ENTITIES (\d+):', line)
+                        if sent_num_match is None:
+                            print(f'Sentence number is not in the output -> {line}. Ending generation entirely.')
+                            output = '\n'.join(valid_lines)
+                            should_break = True
+                            break
+                        else:
+                            sent_num = sent_num_match.group(1)
+                            valid_lines.append(f'### ENTITIES {sent_num}: {uniq_ent_str}')
+                            partial_prompt = '\n'.join(valid_lines).strip() + '\n' + f'### SENTENCE {sent_num}: '
+                            output, full_output = run_prompt(cfg, model, tokenizer, partial_prompt)
+                            break
+                    else:
+                        valid_lines.append(line)
                 else:
                     valid_lines.append(line)
-            else:
-                valid_lines.append(line)
 
-    for line in output.split('\n'):
-        line = line.strip()
-        if len(line) == 0:
-            continue
-        if line.startswith('### SENTENCE'):
-            summary_sents.append(re.sub(r'### SENTENCE \d+:', '', line).strip())
-        elif line.startswith('### ENTITIES'):
-            plan_sents.append(re.sub(r'### ENTITIES \d+:', '', line).strip())
-        else:
-            print(f'Malformed output: {line}. Skipping.')
+        for line in output.split('\n'):
+            line = line.strip()
+            if len(line) == 0:
+                continue
+            if line.startswith('### SENTENCE'):
+                summary_sents.append(re.sub(r'### SENTENCE \d+:', '', line).strip())
+            elif line.startswith('### ENTITIES'):
+                plan_sents.append(re.sub(r'### ENTITIES \d+:', '', line).strip())
+            else:
+                print(f'Malformed output: {line}. Skipping.')
 
     print('\n\n')
     print(output)
@@ -300,10 +314,13 @@ def focus_inference(
     with open(ent_fn, 'r') as fd:
         all_ent_probs = ujson.load(fd)
 
+    # TODO remove
     example_ids = set([x['example_id'] for x in all_ent_probs])
+    example_ids = {'2909118_56040054', '6207085_57476017'}
     prev = len(data)
     data = data.filter(lambda row: row['example_id'] in example_ids)
     new = len(data)
+
     print(f'Entity Probabilities for {new} / {prev} examples. Filtering...')
 
     span2embed = load_ent_embeds()
@@ -343,12 +360,19 @@ if __name__ == '__main__':
     parser.add_argument(
         '--experiment', default='focus'
     )
-    parser.add_argument('--ckpt', default=500)
+    parser.add_argument('--ckpt', default=3500)
 
     # Entity Parameters
     parser.add_argument('--pred_ent_threshold', default=0.81, type=float)
 
     args = parser.parse_args()
+
+    if args.dataset == 'epic':
+        assert args.pred_ent_threshold == 0.81
+    elif args.dataset == 'cumc':
+        assert args.pred_ent_threshold == 0.76
+    else:
+        assert args.pred_ent_threshold == 0.62
 
     args.base_model = os.path.join(args.data_dir, f'{args.pretrained_model}_weights', args.experiment)
     config = Path(os.path.expanduser(f'~/axolotl-bhc/{args.pretrained_model}_{args.config}.yml'))
