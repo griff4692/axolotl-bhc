@@ -360,7 +360,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--experiment', default='focus'
     )
-    parser.add_argument('--ckpt', default=3500)
+    parser.add_argument('--ckpt', default=4000)
+
 
     # Entity Parameters
     parser.add_argument('--pred_ent_threshold', default=0.81, type=float)
