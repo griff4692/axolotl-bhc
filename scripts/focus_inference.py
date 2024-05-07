@@ -314,10 +314,13 @@ def focus_inference(
     with open(ent_fn, 'r') as fd:
         all_ent_probs = ujson.load(fd)
 
+    # TODO remove
     example_ids = set([x['example_id'] for x in all_ent_probs])
+    example_ids = {'2909118_56040054', '6207085_57476017'}
     prev = len(data)
     data = data.filter(lambda row: row['example_id'] in example_ids)
     new = len(data)
+
     print(f'Entity Probabilities for {new} / {prev} examples. Filtering...')
 
     span2embed = load_ent_embeds()
@@ -358,6 +361,7 @@ if __name__ == '__main__':
         '--experiment', default='focus'
     )
     parser.add_argument('--ckpt', default=4000)
+
 
     # Entity Parameters
     parser.add_argument('--pred_ent_threshold', default=0.81, type=float)

@@ -13,7 +13,7 @@ if __name__ == '__main__':
     stats = []
 
     for pretrained_model in ['mistral', 'zephyr']:
-        for experiment in ['baseline_ctd', 'focus', 'frost_esg']:
+        for experiment in ['baseline_ctd', 'focus', 'frost_esg', 'focus_ablation']:
             for dataset in ['epic', 'mimic', 'cumc']:
                 print(f'Starting dataset {dataset}')
                 for ckpt in ['2500', '3000', '3500', '4000']:
